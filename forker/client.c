@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -6,7 +7,7 @@
 
 #include "get_line.h"
 
-#include "soc.h"
+#include "socket.h"
 #include "forker_messages.h"
 
 
@@ -30,40 +31,64 @@ int main(int argc, char *argv[]) {
  
   command_number number;
   soc_token soc = NULL;
+  int port_no;
   char buff[500];
   request_message_t request;
-  boolean something;
   report_message_t report;
   int   report_len;
   int i, n;
+  soc_host  my_host;
+  soc_port  my_port;
 
-  if (argc != 2) {
-    fprintf(stderr, "Error. One arg (port_name) expected.\n");
+
+  /* printf("Req_size: %d\n", sizeof(request_message_t)); */
+  /* printf("Rep_size: %d\n", sizeof(report_message_t)); */
+
+  if (argc != 3) {
+    fprintf(stderr, "Error. Two args <hostname> <port_name/num> expected.\n");
     exit(1);
   }
 
   /* Socket stuff */
-  if (soc_open(&soc) == BS_ERROR) {
+  if (soc_open(&soc, udp_socket) != SOC_OK) {
     perror("soc_open");
     exit(1);
   }
-  if (soc_link_dynamic(soc) == BS_ERROR) {
+  if (soc_link_dynamic(soc) != SOC_OK) {
     perror("soc_link_dynamic");
     exit(1);
   }
-  if (soc_set_blocking(soc, FALSE)  == BS_ERROR) {
+  port_no = atoi(argv[2]);
+  if (port_no <= 0) {
+    if (soc_set_dest_service(soc, argv[1], FALSE, argv[2]) != SOC_OK) {
+      perror("soc_set_dest_service");
+      exit (1);
+    }
+  } else {
+    if (soc_set_dest_port(soc, argv[1], FALSE, port_no) != SOC_OK) {
+      perror("soc_set_dest_service");
+      exit (1);
+    }
+  }
+  if (soc_set_blocking(soc, FALSE) != SOC_OK) {
     perror("soc_set_dest_service");
     exit(1);
   }
 
+  /* Get current host and port */
+  if (soc_get_local_host(&my_host) != SOC_OK) {
+    perror ("soc_get_local_host");
+    exit(1);
+  }
+  if (soc_get_linked_port(soc, &my_port) != SOC_OK) {
+    perror("soc_get_linked_port");
+    exit(1);
+  }
+  printf ("I am host %u port %u\n", my_host.integer, my_port);
+
   number = 0;
   for (;;) {
     printf ("\n");
-    /* Dest is affected by message reception */
-    if (soc_set_dest_service(soc, "localhost", FALSE, argv[1]) == BS_ERROR) {
-      perror("soc_set_dest_service");
-      exit(1);
-    }
 
     printf ("Start Kill Read (s k r) ? ");
     i = get_line (NULL, buff, sizeof(buff));
@@ -77,7 +102,7 @@ int main(int argc, char *argv[]) {
       request.kind = start_command;
       printf ("Number: %d\n", number);
       request.start_req.number = number;
-      number += 2;
+      number += 1;
       printf ("Command ? ");
       i = get_line (NULL, request.start_req.command_text, 
                   sizeof(request.start_req.command_text));
@@ -105,34 +130,38 @@ int main(int argc, char *argv[]) {
       printf ("Output flow ? ");
       i = get_line (NULL, request.start_req.output_flow,
                     sizeof(request.start_req.output_flow));
-      for (;;) {
-        printf ("Append (t or [f]) ? ");
-        i = get_line (NULL, buff, sizeof(buff));
-        if (strcmp(buff, "t") == 0) {
-          request.start_req.append_output = 1;
-          break;
-        } else if ( (i == 0) || (strcmp(buff, "f") == 0) ) {
-          request.start_req.append_output = 0;
-          break;
+      if (i != 0) {
+        for (;;) {
+          printf ("  Append (t or [f]) ? ");
+          i = get_line (NULL, buff, sizeof(buff));
+          if (strcmp(buff, "t") == 0) {
+            request.start_req.append_output = 1;
+            break;
+          } else if ( (i == 0) || (strcmp(buff, "f") == 0) ) {
+            request.start_req.append_output = 0;
+            break;
+          }
         }
       }
 
       printf ("Error flow ? ");
       i = get_line (NULL, request.start_req.error_flow,
                     sizeof(request.start_req.error_flow));
-      for (;;) {
-        printf ("Append (t or [f]) ? ");
-        i = get_line (NULL, buff, sizeof(buff));
-        if (strcmp(buff, "t") == 0) {
-          request.start_req.append_error = 1;
-          break;
-        } else if ( (i == 0) || (strcmp(buff, "f") == 0) ) {
-          request.start_req.append_error = 0;
-          break;
+      if (i != 0) {
+        for (;;) {
+          printf ("  Append (t or [f]) ? ");
+          i = get_line (NULL, buff, sizeof(buff));
+          if (strcmp(buff, "t") == 0) {
+            request.start_req.append_error = 1;
+            break;
+          } else if ( (i == 0) || (strcmp(buff, "f") == 0) ) {
+            request.start_req.append_error = 0;
+            break;
+          }
         }
       }
 
-      if (soc_send(soc, (char*)&request, sizeof(request)) == BS_ERROR) {
+      if (soc_send(soc, (char*)&request, sizeof(request)) != SOC_OK) {
         perror("soc_send");
       }
 
@@ -154,27 +183,46 @@ int main(int argc, char *argv[]) {
       }
       request.kill_req.signal_number = i;
 
-      if (soc_send(soc, (char*)&request, sizeof(request)) == BS_ERROR) {
+      if (soc_send(soc, (char*)&request, sizeof(request)) != SOC_OK) {
         perror("soc_send");
       }
       
 
     } else if (strcmp(buff, "r") == 0) {
       /* Read report */
-      report_len = sizeof(report);
-      if (soc_receive(soc, &something, (char*)&report, &report_len) == BS_ERROR) {
-        perror("soc_receive");
-      } else if (something) {
-        printf ("Report: command %d code %d ", report.number, report.exit_code);
-        if (WIFEXITED(report.number)) {
-          printf ("exit normally code %d\n", WEXITSTATUS(report.exit_code));
-        } else if (WIFSIGNALED(report.number)) {
-          printf ("exit on signal %d\n", WTERMSIG(report.exit_code));
-        } else {
-          printf ("stopped on signal %d\n", WSTOPSIG(report.exit_code));
+      n = soc_receive(soc, &report, sizeof(report), FALSE);
+      if (n == sizeof(report)) {
+        switch (report.kind) {
+          case start_report :
+            printf ("Start: command %d pid %d\n", report.start_rep.number,
+                    report.start_rep.started_pid);
+          break;
+          case kill_report :
+            printf ("Kill: command %d pid %d\n", report.kill_rep.number,
+                    report.kill_rep.killed_pid);
+          break;
+          case exit_report :
+            printf ("Exit: command %d code %d ", report.exit_rep.number,
+                    report.exit_rep.exit_status);
+            if (WIFEXITED(report.exit_rep.exit_status)) {
+              printf ("exit normally code %d\n",
+                      WEXITSTATUS(report.exit_rep.exit_status));
+            } else if (WIFSIGNALED(report.exit_rep.exit_status)) {
+              printf ("exit on signal %d\n",
+                      WTERMSIG(report.exit_rep.exit_status));
+            } else {
+              printf ("stopped on signal %d\n",
+                      WSTOPSIG(report.exit_rep.exit_status));
+            }
+          break;
+          default :
+           printf ("Unknown report kind\n");
+          break;
         }
-      } else {
+      } else if (n == SOC_WOULD_BLOCK) {
         printf ("No report\n");
+      } else {
+        perror("soc_receive");
       }
     }
   }

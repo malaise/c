@@ -1,9 +1,14 @@
+#include "boolean.h"
 
 /****************************************************************************/
 /****** Preliminary definitions                                        ******/
 /****************************************************************************/
-typedef enum {start_command, kill_command} request_kind_list;
 
+/* Kind of request and report */
+typedef enum {start_command, kill_command} request_kind_list;
+typedef enum {start_report, kill_report, exit_report} report_kind_list;
+
+/* Request sizing */
 typedef unsigned int command_number;
 #define MAX_TEXT_LG 512               /* Program + arguments               */
 #define MAX_ENV_LG  256               /* Environment variables             */
@@ -27,11 +32,35 @@ typedef struct {
   int    signal_number;               /* Signal num to send                 */
 } kill_request_t;
 
+/* Request */
 typedef union {
   start_request_t start_request;
   kill_request_t  kill_request;
 } request_u;
 
+/* Start report */
+typedef struct {
+  command_number number;              /* Managed by the client              */
+  int started_pid;                    /* Pid of Started process or -1       */
+} start_report_t;
+
+/* Kill report */
+typedef struct {
+  command_number number;              /* Managed by the client              */
+  boolean killed_pid;                 /* Pid of Killed  process or -1       */
+} kill_report_t;
+
+/* Exit report */
+typedef struct {
+  command_number number;              /* Managed by the client              */
+  int     exit_status;                /* Exit status of command             */
+} exit_report_t;
+
+typedef union {
+  start_report_t start_report;
+  kill_report_t  kill_report;
+  exit_report_t  exit_report;
+} report_u;
 
 /****************************************************************************/
 /****** Interface definitions                                          ******/
@@ -46,8 +75,11 @@ typedef struct {
 
 /* The interface report message forker -> client */
 typedef struct {
-  command_number number;              /* Managed by the client              */
-  int    exit_code;                   /* Exit code of the command           */
+  report_kind_list  kind;
+#define start_rep   report.start_report
+#define kill_rep    report.kill_report
+#define exit_rep    report.exit_report
+  report_u       report;              /* Ok/Nok/Exit_code                   */
 } report_message_t;
 
 

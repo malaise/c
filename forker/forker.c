@@ -11,7 +11,7 @@
 
 
 #include "boolean.h"
-#include "soc.h"
+#include "socket.h"
 #include "timer.h"
 
 #include "forker_messages.h"
@@ -29,6 +29,8 @@
 typedef struct com_cell {
   command_number  number;
   int             pid;
+  soc_host        client_host;
+  soc_port        client_port;
   struct com_cell *next, *prev;
 } command_cell;
 command_cell *first_cell, *last_cell;
@@ -42,6 +44,7 @@ static int debug=TRUE;
 #else
 static int debug=FALSE;
 #endif
+#define FORKER_DEBUG "FORKER_DEBUG"
 
 /* Display error and fataf error message */
 void fatal (char *msg, char *extra) {
@@ -114,8 +117,10 @@ boolean has_2_nuls (char *str, int len) {
   return FALSE;
 } 
 
-/* Fork and launch a command */
-void do_start_command (start_request_t *request) {
+/* Fork and launch a command, return forked pid or -1 */
+int do_start_command (start_request_t *request,
+                          soc_host *client_host,
+                          soc_port client_port) {
   int res;
   command_cell *cur_cell;
   int fd;
@@ -126,34 +131,34 @@ void do_start_command (start_request_t *request) {
   /* Check there is a command */
   if (request->command_text[0] == '\0') {
     error("Empty command in start message", "");
-    return;
+    return -1;
   }
 
   /* Check all strings are propoerly terminated */
   if (! has_2_nuls(request->command_text,
                    sizeof(request->command_text)) ) {
     error("Invalid text in start command", "");
-    exit(FATAL_ERROR_EXIT_CODE);
+    return -1;
   }
   if (! has_2_nuls(request->environ_variables,
                    sizeof(request->environ_variables)) ) {
     error("Invalid text in start environ", "");
-    exit(FATAL_ERROR_EXIT_CODE);
+    return -1;
   }
   if (! has_1_nul(request->currend_dir,
                   sizeof(request->currend_dir)) ) {
     error("Invalid text in start curdir", "");
-    exit(FATAL_ERROR_EXIT_CODE);
+    return -1;
   }
   if (! has_1_nul(request->output_flow,
                   sizeof(request->output_flow)) ) {
     error("Invalid text in start stdout", "");
-    exit(FATAL_ERROR_EXIT_CODE);
+    return -1;
   }
   if (! has_1_nul(request->error_flow,
                   sizeof(request->error_flow)) ) {
     error("Invalid text in start stderr", "");
-    exit(FATAL_ERROR_EXIT_CODE);
+    return -1;
   }
 
   /* Procreate */
@@ -161,7 +166,7 @@ void do_start_command (start_request_t *request) {
   if (res == -1) {
     perror("fork");
     error("Cannot fork", "");
-    return;
+    return -1;
   } else if (res != 0) {
     /***************/
     /* Forker code */
@@ -170,12 +175,15 @@ void do_start_command (start_request_t *request) {
     if (cur_cell == NULL) {
       perror("malloc");
       error("Cannot malloc a new cell", "");
-      return;
+      return -1;
     }
     /* Allocate a cell and store command and pid */
     cur_cell->pid = res;
     cur_cell->number = request->number;
+    memcpy (&(cur_cell->client_host), client_host, sizeof(soc_host));
+    cur_cell->client_port = client_port;
     cur_cell->next = first_cell;
+    cur_cell->prev = NULL;
     first_cell = cur_cell;
     if (cur_cell->next != NULL) {
       (cur_cell->next)->prev = cur_cell;
@@ -186,7 +194,7 @@ void do_start_command (start_request_t *request) {
       printf ("Forked pid %d\n", res);
     }
     /* Done */
-    return;
+    return res;
   }
 
   /**************/
@@ -309,14 +317,14 @@ void do_start_command (start_request_t *request) {
       printf (" >%s<", args[li]);
       li++;
     }
-    printf ("\n");
+    printf ("\n\n");
   }
 
   /* Now the exec */    
   if (execv(request->command_text, args) == -1) {
     perror("execv");
     error("Cannot exec command: ", request->command_text);
-    exit(1);
+    exit(FATAL_ERROR_EXIT_CODE);
   } 
   /* Never reached */
 }
@@ -324,6 +332,7 @@ void do_start_command (start_request_t *request) {
 
 int main (int argc, char *argv[]) {
 
+  char *debug_var;
   soc_token soc = NULL;
   int port_no;
   int nfds;
@@ -334,9 +343,20 @@ int main (int argc, char *argv[]) {
   char c;
   pid_t a_pid;
   command_cell *cur_cell;
+  report_message_t report;
+
+  /* Init debug */
+  debug_var = getenv(FORKER_DEBUG);
+  if ( (debug_var != NULL)
+    && (strcmp(debug_var, "Y") == 0) ) {
+    debug = TRUE;
+  } else if ( (debug_var != NULL)
+            && (strcmp(debug_var, "N") == 0) ) {
+    debug = FALSE;
+  } /* Else unchanged from compilation option */
 
   /* Create the socket */
-  if (soc_open(&soc) == BS_ERROR) {
+  if (soc_open(&soc, udp_socket) != SOC_OK) {
     perror("opening socket");
     fatal("Cannot create socket", "");
     exit(FATAL_ERROR_EXIT_CODE);
@@ -351,13 +371,13 @@ int main (int argc, char *argv[]) {
   /* Bind */
   port_no = atoi(argv[1]);
   if (port_no <= 0) {
-    if (soc_link_service(soc, argv[1]) == BS_ERROR) {
+    if (soc_link_service(soc, argv[1]) != SOC_OK) {
       perror ("linking socket");
       fatal("Cannot bind socket to name: ", argv[1]);
       exit (FATAL_ERROR_EXIT_CODE);
     }
   } else {
-    if (soc_link_port(soc, port_no) == BS_ERROR) {
+    if (soc_link_port(soc, port_no) != SOC_OK) {
       perror ("linking socket");
       fatal("Cannot bind socket to no: ", argv[1]);
       exit (FATAL_ERROR_EXIT_CODE);
@@ -365,7 +385,7 @@ int main (int argc, char *argv[]) {
   }
 
   /* Get socket fd  for the select */
-  if (soc_get_id(soc, &soc_fd) == BS_ERROR) {
+  if (soc_get_id(soc, &soc_fd) != SOC_OK) {
     perror ("getting socket fd");
     fatal("Cannot get socket fd", "");
     exit (FATAL_ERROR_EXIT_CODE);
@@ -378,6 +398,19 @@ int main (int argc, char *argv[]) {
     exit (FATAL_ERROR_EXIT_CODE);
   }
   write_on_me = pipe_fd[1];
+
+  /* Close on exec on pipe fds */
+  if (fcntl(pipe_fd[0], F_SETFD, FD_CLOEXEC) < 0) {
+    perror("fcntl(FD_CLOEXEC)");
+    fatal("Cannot set close on exec on pipe_fd[0]", "");
+    exit (FATAL_ERROR_EXIT_CODE);
+  }
+  if (fcntl(pipe_fd[1], F_SETFD, FD_CLOEXEC) < 0) {
+    perror("fcntl(FD_CLOEXEC)");
+    fatal("Cannot set close on exec on pipe_fd[1]", "");
+    exit (FATAL_ERROR_EXIT_CODE);
+  }
+
 
   /* Build select mask */
   nfds = 0;
@@ -405,6 +438,13 @@ int main (int argc, char *argv[]) {
   first_cell = NULL;
   last_cell = NULL;
 
+  /* Clear environ */
+  if (clearenv() != 0) {
+    perror("clearenv");
+    fatal("Cannot clear environment", "");
+    exit (FATAL_ERROR_EXIT_CODE);
+  }
+ 
 
   /* Ready */
   fprintf(stderr, "%s ready. %s\n", PROG_NAME, (debug ? "Debug on." : ""));
@@ -428,7 +468,6 @@ int main (int argc, char *argv[]) {
 
     /* Where data to read? */
     if (FD_ISSET(pipe_fd[0], &select_mask)) {
-      report_message_t report_message;
 
       /* Data on pipe, read the byte */
       if (debug) {
@@ -449,11 +488,13 @@ int main (int argc, char *argv[]) {
       }
 
       /* Look for several exited children */
+      report.kind = exit_report;
       for (;;) {
+        boolean do_send;
 
         /* Get a dead pid */
         for (;;) {
-          res = waitpid((pid_t)-1, &(report_message.exit_code), WNOHANG);
+          res = waitpid((pid_t)-1, &(report.exit_rep.exit_status), WNOHANG);
           if ( (res >= 0) || ( (res == -1) && (errno != EINTR) ) ) {
             break;
           }
@@ -461,7 +502,7 @@ int main (int argc, char *argv[]) {
         if ((res == 0) || ( (res == -1) && (errno == ECHILD) ) ) {
           /* No more child */
           if (debug) {
-            printf ("No more child\n");
+            printf ("No more child\n\n");
           }
           break;
         } else if (res < 0) {
@@ -472,7 +513,7 @@ int main (int argc, char *argv[]) {
         /* Child pid */
         a_pid = res;
         if (debug) {
-          printf ("Pid %d exited code %d\n", a_pid, report_message.exit_code);
+          printf ("Pid %d exited code %d\n", a_pid, report.exit_rep.exit_status);
         }
 
         /* Look for pid in list */
@@ -488,9 +529,22 @@ int main (int argc, char *argv[]) {
         }
 
         /* Found the command number */
-        report_message.number = cur_cell->number;
+        report.exit_rep.number = cur_cell->number;
         if (debug) {
-          printf ("Command was %d\n", report_message.number);
+          printf ("Command was %d\n", report.exit_rep.number);
+        }
+
+        /* Set dest to client for report */
+        do_send = TRUE;
+        if (soc_set_dest(soc, &(cur_cell->client_host), cur_cell->client_port)
+             != SOC_OK) {
+          error("Cannot set dest to client", "");
+          do_send = FALSE;
+        }
+        if (debug) {
+          printf ("Dest set to host %u port %u\n",
+                  cur_cell->client_host.integer,
+                  cur_cell->client_port);
         }
 
         /* Free the cell */
@@ -507,12 +561,15 @@ int main (int argc, char *argv[]) {
         free(cur_cell);
 
         /* Send report */
-        if (soc_send(soc, (soc_message)&report_message, sizeof(report_message)) == BS_ERROR) {
-          perror("sending on socket");
-          error("Cannot send report message", "");
-        }
-        if (debug) {
-          printf ("Report sent\n");
+        if (do_send) {
+          if (soc_send(soc, (soc_message)&report,
+                             sizeof(report)) != SOC_OK) {
+            perror("sending on socket");
+            error("Cannot send exit report message", "");
+          }
+          if (debug) {
+            printf ("Exit report sent\n");
+          }
         }
 
       } /* For each dead child */
@@ -521,15 +578,17 @@ int main (int argc, char *argv[]) {
       /* A request */
       request_message_t request_message;
       soc_length        request_len;
-      boolean           received;
+      soc_host          request_host;
+      soc_port          request_port;
 
       if (debug) {
         printf ("Data on socket\n");
       }
 
       /* Read request */
-      request_len = sizeof(request_message);
-      if (soc_receive(soc, &received, (char*)&request_message, &request_len) == BS_ERROR) {
+      request_len = soc_receive(soc, &request_message,
+                                sizeof(request_message), TRUE);
+      if (request_len < SOC_OK) {
         perror("receiving from socket");
         error("Cannot receive request message", "");
         continue;
@@ -540,45 +599,92 @@ int main (int argc, char *argv[]) {
         error("Received a message of invalid size", "");
         continue;
       }
-      if ( (request_message.kind != start_command) && (request_message.kind != kill_command) ) {
+      if ( (request_message.kind != start_command)
+        && (request_message.kind != kill_command) ) {
         error("Received a message with invalid command", "");
         continue;
       }
 
+      /* Get client host and port */
+      if (soc_get_dest_host(soc, &request_host) != SOC_OK) {
+        error("Cannot get client host", "");
+        continue;
+      }
+      if (soc_get_dest_port(soc, &request_port) != SOC_OK) {
+        error("Cannot get client port", "");
+        continue;
+      }
+      if (debug) {
+        printf ("Client is host %u port %u\n",
+                request_host.integer,
+                request_port);
+      }
+
       if (request_message.kind == kill_command) {
-        /* Kill command: Find pid */
+
+        report.kind = kill_report;
+        report.kill_rep.number = request_message.kill_req.number;
         if (debug) {
-          printf ("Request kill %d\n", request_message.kill_req.number);
+          printf ("Request kill num %d sig %d\n",
+                request_message.kill_req.number,
+                request_message.kill_req.signal_number);
         }
+
+        /* Kill command: Find pid from criteria Num, host, port */
+        report.kill_rep.killed_pid = -1;
         cur_cell = last_cell;
-        while ( (cur_cell != NULL)
-             && (cur_cell->number != request_message.kill_req.number) ) {
+        while (cur_cell != NULL) {
+          if ( (cur_cell->number == request_message.kill_req.number)
+            && (cur_cell->client_port == request_port)
+            && (memcmp(&(cur_cell->client_host),
+                       &request_host,
+                       sizeof(soc_host)) == 0) ) {
+              break;
+          }
           cur_cell = cur_cell->prev;
         }
         if (cur_cell == NULL) {
-          char dbg[50];
-          sprintf(dbg, "%d", request_message.kill_req.number);
-          error("Cannot find in list command: ", dbg);
-          continue;
-        }
-        if (debug) {
-          printf ("Pid to kill is %d\n", cur_cell->pid);
+          if (debug) {
+            printf("Cannot find command-host-port in list\n");
+          }
+          report.kill_rep.killed_pid = -1;
+        } else {
+          report.kill_rep.killed_pid = cur_cell->pid;
+          if (debug) {
+            printf ("Pid to kill is %d\n", cur_cell->pid);
+          }
         }
 
         /* Kill the child */
-        if (kill(cur_cell->pid, request_message.kill_req.signal_number) == -1) {
-          char dbg[50];
-          perror("kill");
-          sprintf(dbg, "%d", cur_cell->pid);
-          error("Cannot kill child pid: ", dbg);
+        if (report.kill_rep.killed_pid != -1) {
+          if (kill(cur_cell->pid, request_message.kill_req.signal_number) == -1) {
+            char dbg[50];
+            perror("kill");
+            sprintf(dbg, "%d", cur_cell->pid);
+            error("Cannot kill child pid: ", dbg);
+            report.kill_rep.killed_pid = -1;
+          }
         }
       } else {
 
         /* Start command */
         if (debug) {
-          printf ("Request start\n");
+          printf ("Request start %d\n", request_message.start_req.number);
         }
-        do_start_command(&request_message.start_req);
+        report.kind = start_report;
+        report.start_rep.number = request_message.start_req.number;
+        report.start_rep.started_pid =
+               do_start_command(&request_message.start_req,
+                                &request_host, request_port);
+      }
+      /* Send report */
+      if (soc_send(soc, (soc_message)&report,
+                         sizeof(report)) != SOC_OK) {
+        perror("sending on socket");
+        error("Cannot send exit report message", "");
+      }
+      if (debug) {
+        printf ("Start/Kill report sent\n\n");
       }
         
 
