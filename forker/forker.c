@@ -8,13 +8,18 @@
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <time.h>
+#include <sys/time.h>
+#include <stdarg.h>
 
 
 #include "boolean.h"
 #include "socket.h"
-#include "timer.h"
 
 #include "forker_messages.h"
+
+/* Should be defined in stdlib (not on DU 4.0) */
+extern int clearenv (void);
 
 /* For error messages */
 #define PROG_NAME "FORKER"
@@ -46,26 +51,60 @@ static int debug=FALSE;
 #endif
 #define FORKER_DEBUG "FORKER_DEBUG"
 
-/* Display error and fataf error message */
-void fatal (char *msg, char *extra) {
-  fprintf(stderr, "%s FATAL: %s%s.\n", PROG_NAME, msg, extra);
+/* Flush traces */
+static void flush (void) {
+  (void) fflush (stdout);
+  (void) fflush (stderr);
 }
-void error (char *msg, char *extra) {
-  fprintf(stderr, "%s ERROR: %s%s.\n", PROG_NAME, msg, extra);
+
+static char *date_str (void) {
+  struct timeval time;
+  struct tm *tm_date_p;
+  static char printed_date[20];
+
+  gettimeofday (&time, NULL);
+  tm_date_p = gmtime( (time_t*) &(time.tv_sec) );
+  sprintf (printed_date, "%04d/%02d/%02d %02d:%02d:%02d",
+        (tm_date_p->tm_year)+1900, (tm_date_p->tm_mon)+1, tm_date_p->tm_mday,
+        tm_date_p->tm_hour, tm_date_p->tm_min, tm_date_p->tm_sec);
+
+  return printed_date;
+}
+
+/* Display error and fataf error message */
+static void fatal (char *msg, char *extra) {
+  fprintf(stderr, "% %s FATAL: %s%s.\n", date_str(), PROG_NAME, msg, extra);
+}
+static void error (char *msg, char *extra) {
+  fprintf(stderr, "%s ERROR: %s%s.\n", date_str(), PROG_NAME, msg, extra);
+}
+
+/* Display trace message */
+static void trace (const char *f,...) {
+  va_list args;
+
+  printf ("%s ", date_str());
+
+  va_start(args, f);
+  vprintf (f, args);
+  va_end(args);
+
+  printf ("\n");
+
 }
 
 /* Toggle debug on SIGUSR1 */
-void sigusr1_handler (int signum) {
+static void sigusr1_handler (int signum) {
   if (signum != SIGUSR1) {
     error("Handler called but not on sig usr1", "");
     return;
   }
   debug = !debug;
-  printf("Caught sigusr1, debug %s.\n", (debug ? "on" : "off"));
+  trace("Caught sigusr1, debug %s", (debug ? "on" : "off"));
 }
 
 /* Write a byte on pipe when a child exits */
-void sigchild_handler (int signum) {
+static void sigchild_handler (int signum) {
 
   int res;
   char c = 'C';
@@ -76,7 +115,7 @@ void sigchild_handler (int signum) {
   }
 
   if (debug) {
-    printf("Caught sigchild\n");
+    trace("Caught sigchild");
   }
   
   /* Write on pipe */
@@ -87,12 +126,12 @@ void sigchild_handler (int signum) {
     }
   }
   if (debug) {
-    printf("Pipe written\n");
+    trace("Pipe written");
   }
 }
 
 /* Check there is one terminator ('\0') in string */
-boolean has_1_nul (char *str, int len) {
+static boolean has_1_nul (char *str, int len) {
   int i;
   for (i = 0; i < len; i++) {
     if (str[i] == '\0') {
@@ -103,7 +142,7 @@ boolean has_1_nul (char *str, int len) {
 } 
 
 /* Check there are two successive terminators ("\0\0") in string */
-boolean has_2_nuls (char *str, int len) {
+static boolean has_2_nuls (char *str, int len) {
   int i;
   char p;
 
@@ -118,9 +157,9 @@ boolean has_2_nuls (char *str, int len) {
 } 
 
 /* Fork and launch a command, return forked pid or -1 */
-int do_start_command (start_request_t *request,
-                          soc_host *client_host,
-                          soc_port client_port) {
+static int do_start_command (start_request_t *request,
+                             soc_host *client_host,
+                             soc_port client_port) {
   int res;
   command_cell *cur_cell;
   int fd;
@@ -191,7 +230,7 @@ int do_start_command (start_request_t *request,
       last_cell = cur_cell;
     }
     if (debug) {
-      printf ("Forked pid %d\n", res);
+      trace ("Forked pid %d", res);
     }
     /* Done */
     return res;
@@ -208,9 +247,8 @@ int do_start_command (start_request_t *request,
       exit(FATAL_ERROR_EXIT_CODE);
     }
     if (debug) {
-      printf ("Curdir changed to >%s<\n", request->currend_dir);
+      trace ("Curdir changed to >%s<", request->currend_dir);
     }
-
   }
 
   /* Set environnement variables */ 
@@ -222,7 +260,7 @@ int do_start_command (start_request_t *request,
       exit(FATAL_ERROR_EXIT_CODE);
     }
     if (debug) {
-      printf ("Envir added: >%s<\n", start);
+      trace ("Envir added: >%s<", start);
     }
     /* Find end of string */
     while (*start != '\0') start++;
@@ -240,6 +278,7 @@ int do_start_command (start_request_t *request,
       error("Cannot open output flow: ", request->output_flow);
       exit(FATAL_ERROR_EXIT_CODE);
     }
+    flush ();
     if (dup2(fd, fileno(stdout)) == -1) {
       perror("dup2");
       error("Cannot duplicate output flow", "");
@@ -247,7 +286,7 @@ int do_start_command (start_request_t *request,
     }
     close(fd);
     if (debug) {
-      printf ("Stdout set to >%s< append %d\n", request->output_flow,
+      trace ("Stdout set to >%s< append %d", request->output_flow,
               (int)request->append_output);
     }
   }
@@ -262,6 +301,7 @@ int do_start_command (start_request_t *request,
       error("Cannot open error flow: ", request->error_flow);
       exit(FATAL_ERROR_EXIT_CODE);
     }
+    flush ();
     if (dup2(fd, fileno(stderr)) == -1) {
       perror("dup2");
       error("Cannot duplicate error flow", "");
@@ -269,7 +309,7 @@ int do_start_command (start_request_t *request,
     }
     close(fd);
     if (debug) {
-      printf ("Stderr set to >%s< append %d\n", request->error_flow,
+      trace ("Stderr set to >%s< append %d", request->error_flow,
               (int)request->append_error);
     }
   }
@@ -312,12 +352,14 @@ int do_start_command (start_request_t *request,
 
   if (debug) {
     int li = 0;
+    trace ("");
     printf ("Command line: >%s<", request->command_text);
     while (args[li] != NULL) {
       printf (" >%s<", args[li]);
       li++;
     }
     printf ("\n\n");
+    flush ();
   }
 
   /* Now the exec */    
@@ -332,7 +374,7 @@ int do_start_command (start_request_t *request,
 
 /* Check message kind and size are correct and match */
 /* len has to be size of request_u or size of current request_t */
-boolean msg_ok (soc_length len, request_kind_list kind) {
+static boolean msg_ok (soc_length len, request_kind_list kind) {
   switch (kind) {
     case start_command:
       if (len == sizeof(start_request_t)) return TRUE;
@@ -476,13 +518,18 @@ int main (int argc, char *argv[]) {
  
 
   /* Ready */
-  fprintf(stderr, "%s ready. %s\n", PROG_NAME, (debug ? "Debug on." : ""));
+  fprintf(stderr, "%s %s ready. %s\n", date_str(), PROG_NAME, (debug ? "Debug on." : ""));
 
   /* Main loop */
   for (;;) {
 
     /* Select loop while EINTR */
     for (;;) {
+
+      /* Flush traces including signals */
+      flush ();
+
+      /* The Select */
       memcpy(&select_mask, &saved_mask, sizeof(fd_set));
       res = select(nfds+1, &select_mask, (fd_set*)NULL, (fd_set*)NULL,
                    (struct timeval*)NULL);
@@ -500,7 +547,7 @@ int main (int argc, char *argv[]) {
 
       /* Data on pipe, read the byte */
       if (debug) {
-        printf ("Data on pipe\n");
+        trace ("Data on pipe");
       }
       for (;;) {
         res = read(pipe_fd[0], &c, 1);
@@ -513,7 +560,7 @@ int main (int argc, char *argv[]) {
         continue;
       }
       if (debug) {
-        printf ("Data read on pipe\n");
+        trace ("Data read on pipe");
       }
 
       /* Look for several exited children */
@@ -531,7 +578,7 @@ int main (int argc, char *argv[]) {
         if ((res == 0) || ( (res == -1) && (errno == ECHILD) ) ) {
           /* No more child */
           if (debug) {
-            printf ("No more child\n\n");
+            trace ("No more child\n");
           }
           break;
         } else if (res < 0) {
@@ -542,7 +589,7 @@ int main (int argc, char *argv[]) {
         /* Child pid */
         a_pid = res;
         if (debug) {
-          printf ("Pid %d exited code %d\n", a_pid, report.exit_rep.exit_status);
+          trace ("Pid %d exited code %d", a_pid, report.exit_rep.exit_status);
         }
 
         /* Look for pid in list */
@@ -561,7 +608,7 @@ int main (int argc, char *argv[]) {
         report.exit_rep.number = cur_cell->number;
         report.exit_rep.exit_pid = cur_cell->pid;
         if (debug) {
-          printf ("Command was %d\n", report.exit_rep.number);
+          trace ("Command was %d", report.exit_rep.number);
         }
 
         /* Set dest to client for report */
@@ -572,7 +619,7 @@ int main (int argc, char *argv[]) {
           do_send = FALSE;
         }
         if (debug) {
-          printf ("Dest set to host %u port %u\n",
+          trace ("Dest set to host %u port %u",
                   cur_cell->client_host.integer,
                   cur_cell->client_port);
         }
@@ -598,7 +645,7 @@ int main (int argc, char *argv[]) {
             error("Cannot send exit report message", "");
           }
           if (debug) {
-            printf ("Exit report sent\n");
+            trace ("Exit report sent");
           }
         }
 
@@ -612,7 +659,7 @@ int main (int argc, char *argv[]) {
       soc_port          request_port;
 
       if (debug) {
-        printf ("Data on socket\n");
+        trace ("Data on socket");
       }
 
       /* Read request */
@@ -644,7 +691,7 @@ int main (int argc, char *argv[]) {
         continue;
       }
       if (debug) {
-        printf ("Client is host %u port %u\n",
+        trace ("Client is host %u port %u",
                 request_host.integer,
                 request_port);
       }
@@ -654,7 +701,7 @@ int main (int argc, char *argv[]) {
         report.kind = kill_report;
         report.kill_rep.number = request_message.kill_req.number;
         if (debug) {
-          printf ("Request kill num %d sig %d\n",
+          trace ("Request kill num %d sig %d",
                 request_message.kill_req.number,
                 request_message.kill_req.signal_number);
         }
@@ -674,13 +721,13 @@ int main (int argc, char *argv[]) {
         }
         if (cur_cell == NULL) {
           if (debug) {
-            printf("Cannot find command-host-port in list\n");
+            trace ("Cannot find command-host-port in list");
           }
           report.kill_rep.killed_pid = -1;
         } else {
           report.kill_rep.killed_pid = cur_cell->pid;
           if (debug) {
-            printf ("Pid to kill is %d\n", cur_cell->pid);
+            trace ("Pid to kill is %d", cur_cell->pid);
           }
         }
 
@@ -698,7 +745,9 @@ int main (int argc, char *argv[]) {
 
         /* Start command */
         if (debug) {
-          printf ("Request start %d\n", request_message.start_req.number);
+          trace ("Request start %d: %s",
+                  request_message.start_req.number,
+                 request_message.start_req.command_text);
         }
         report.kind = start_report;
         report.start_rep.number = request_message.start_req.number;
@@ -710,7 +759,7 @@ int main (int argc, char *argv[]) {
 
         /* Exit command */
         if (debug) {
-          printf ("Request exit %d\n", request_message.fexit_req.exit_code);
+          trace ("Request exit %d", request_message.fexit_req.exit_code);
         }
         report.kind = fexit_report;
 
@@ -718,7 +767,7 @@ int main (int argc, char *argv[]) {
 
         /* Ping command */
         if (debug) {
-          printf ("Request ping\n");
+          trace ("Request ping");
         }
         report.kind = pong_report;
 
@@ -735,12 +784,12 @@ int main (int argc, char *argv[]) {
         error("Cannot send exit report message", "");
       }
       if (debug) {
-        printf ("Start/Kill/Exit/Pong report sent\n\n");
+        trace ("Start/Kill/Exit/Pong report sent\n");
       }
 
       if (request_message.kind == fexit_command) {
         if (debug) {
-          printf ("Exiting code %d\n", request_message.fexit_req.exit_code);
+          trace ("Exiting code %d", request_message.fexit_req.exit_code);
         }
         exit(request_message.fexit_req.exit_code);
       }
