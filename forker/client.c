@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
   for (;;) {
     printf ("\n");
 
-    printf ("Start Kill Read (s k r) ? ");
+    printf ("Start Kill Exit Ping Read (s k e p r) ? ");
     i = get_line (NULL, buff, sizeof(buff));
 
     if (strcmp(buff, "s") == 0) {
@@ -187,6 +187,28 @@ int main(int argc, char *argv[]) {
         perror("soc_send");
       }
       
+    } else if (strcmp(buff, "e") == 0) {
+      /* Exit */
+      request.kind = fexit_command;
+      for (;;) {
+        printf ("Exit code ? ");
+        i = get_line (NULL, buff, sizeof(buff));
+        i = atoi(buff);
+        if (i >= 0) break;
+      }
+      request.fexit_req.exit_code = i;
+
+      if (soc_send(soc, (char*)&request, sizeof(request)) != SOC_OK) {
+        perror("soc_send");
+      }
+
+    } else if (strcmp(buff, "p") == 0) {
+      /* Exit */
+      request.kind = ping_command;
+
+      if (soc_send(soc, (char*)&request, sizeof(request)) != SOC_OK) {
+        perror("soc_send");
+      }
 
     } else if (strcmp(buff, "r") == 0) {
       /* Read report */
@@ -202,8 +224,8 @@ int main(int argc, char *argv[]) {
                     report.kill_rep.killed_pid);
           break;
           case exit_report :
-            printf ("Exit: command %d code %d ", report.exit_rep.number,
-                    report.exit_rep.exit_status);
+            printf ("Exit: command %d pid %d code %d ", report.exit_rep.number,
+                    report.exit_rep.exit_pid, report.exit_rep.exit_status);
             if (WIFEXITED(report.exit_rep.exit_status)) {
               printf ("exit normally code %d\n",
                       WEXITSTATUS(report.exit_rep.exit_status));
@@ -214,6 +236,12 @@ int main(int argc, char *argv[]) {
               printf ("stopped on signal %d\n",
                       WSTOPSIG(report.exit_rep.exit_status));
             }
+          break;
+          case fexit_report :
+            printf ("Forker exited\n");
+          break;
+          case pong_report :
+            printf ("Pong\n");
           break;
           default :
            printf ("Unknown report kind\n");

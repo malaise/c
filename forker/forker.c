@@ -530,6 +530,7 @@ int main (int argc, char *argv[]) {
 
         /* Found the command number */
         report.exit_rep.number = cur_cell->number;
+        report.exit_rep.exit_pid = cur_cell->pid;
         if (debug) {
           printf ("Command was %d\n", report.exit_rep.number);
         }
@@ -600,7 +601,9 @@ int main (int argc, char *argv[]) {
         continue;
       }
       if ( (request_message.kind != start_command)
-        && (request_message.kind != kill_command) ) {
+        && (request_message.kind != kill_command)
+        && (request_message.kind != fexit_command)
+        && (request_message.kind != ping_command) ) {
         error("Received a message with invalid command", "");
         continue;
       }
@@ -665,7 +668,7 @@ int main (int argc, char *argv[]) {
             report.kill_rep.killed_pid = -1;
           }
         }
-      } else {
+      } else if (request_message.kind == start_command) {
 
         /* Start command */
         if (debug) {
@@ -676,7 +679,29 @@ int main (int argc, char *argv[]) {
         report.start_rep.started_pid =
                do_start_command(&request_message.start_req,
                                 &request_host, request_port);
+
+      } else if (request_message.kind == fexit_command) {
+
+        /* Exit command */
+        if (debug) {
+          printf ("Request exit %d\n", request_message.fexit_req.exit_code);
+        }
+        report.kind = fexit_report;
+
+      } else if (request_message.kind == ping_command) {
+
+        /* Ping command */
+        if (debug) {
+          printf ("Request ping\n");
+        }
+        report.kind = pong_report;
+
+      } else {
+
+        error("Received a message with invalid command", "");
+
       }
+
       /* Send report */
       if (soc_send(soc, (soc_message)&report,
                          sizeof(report)) != SOC_OK) {
@@ -684,7 +709,14 @@ int main (int argc, char *argv[]) {
         error("Cannot send exit report message", "");
       }
       if (debug) {
-        printf ("Start/Kill report sent\n\n");
+        printf ("Start/Kill/Exit/Pong report sent\n\n");
+      }
+
+      if (request_message.kind == fexit_command) {
+        if (debug) {
+          printf ("Exiting code %d\n", request_message.fexit_req.exit_code);
+        }
+        exit(request_message.fexit_req.exit_code);
       }
         
 

@@ -5,8 +5,10 @@
 /****************************************************************************/
 
 /* Kind of request and report */
-typedef enum {start_command, kill_command} request_kind_list;
-typedef enum {start_report, kill_report, exit_report} report_kind_list;
+typedef enum {start_command, kill_command, fexit_command, ping_command}
+             request_kind_list;
+typedef enum {start_report, kill_report, exit_report, fexit_report,
+              pong_report} report_kind_list;
 
 /* Request sizing */
 typedef unsigned int command_number;
@@ -32,10 +34,16 @@ typedef struct {
   int    signal_number;               /* Signal num to send                 */
 } kill_request_t;
 
+/* Forker Exit request structure */
+typedef struct {
+  int exit_code;                      /* Code to exit with                  */
+} fexit_request_t;
+
 /* Request */
 typedef union {
   start_request_t start_request;
   kill_request_t  kill_request;
+  fexit_request_t fexit_request;
 } request_u;
 
 /* Start report */
@@ -47,12 +55,13 @@ typedef struct {
 /* Kill report */
 typedef struct {
   command_number number;              /* Managed by the client              */
-  boolean killed_pid;                 /* Pid of Killed  process or -1       */
+  int killed_pid;                     /* Pid of Killed  process or -1       */
 } kill_report_t;
 
 /* Exit report */
 typedef struct {
   command_number number;              /* Managed by the client              */
+  int     exit_pid;                   /* Pid of exited command              */
   int     exit_status;                /* Exit status of command             */
 } exit_report_t;
 
@@ -70,6 +79,7 @@ typedef struct {
   request_kind_list kind;
 #define start_req   request.start_request
 #define kill_req    request.kill_request
+#define fexit_req   request.fexit_request
   request_u         request;
 } request_message_t;
 
