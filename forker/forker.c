@@ -22,7 +22,6 @@
 /* Exit code when something is wrong */
 #define FATAL_ERROR_EXIT_CODE 1
 
-
 /* Rights of redirections: -rw-r--r-- 0644 */
 #define FILE_RIGHTS  (S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)
 
@@ -44,6 +43,7 @@ static int debug=TRUE;
 static int debug=FALSE;
 #endif
 
+/* Display error and fataf error message */
 void fatal (char *msg, char *extra) {
   fprintf(stderr, "%s FATAL: %s%s.\n", PROG_NAME, msg, extra);
 }
@@ -51,6 +51,7 @@ void error (char *msg, char *extra) {
   fprintf(stderr, "%s ERROR: %s%s.\n", PROG_NAME, msg, extra);
 }
 
+/* Toggle debug on SIGUSR1 */
 void sigusr1_handler (int signum) {
   if (signum != SIGUSR1) {
     error("Handler called but not on sig usr1", "");
@@ -60,7 +61,7 @@ void sigusr1_handler (int signum) {
   printf("Caught sigusr1, debug %s.\n", (debug ? "on" : "off"));
 }
 
-
+/* Write a byte on pipe when a child exits */
 void sigchild_handler (int signum) {
 
   int res;
@@ -87,7 +88,7 @@ void sigchild_handler (int signum) {
   }
 }
 
-/* Check there is one terminator in string */
+/* Check there is one terminator ('\0') in string */
 boolean has_1_nul (char *str, int len) {
   int i;
   for (i = 0; i < len; i++) {
@@ -98,7 +99,7 @@ boolean has_1_nul (char *str, int len) {
   return FALSE;
 } 
 
-/* Check there are two successive terminators in string */
+/* Check there are two successive terminators ("\0\0") in string */
 boolean has_2_nuls (char *str, int len) {
   int i;
   char p;
@@ -113,6 +114,7 @@ boolean has_2_nuls (char *str, int len) {
   return FALSE;
 } 
 
+/* Fork and launch a command */
 void do_start_command (start_request_t *request) {
   int res;
   command_cell *cur_cell;
@@ -121,42 +123,13 @@ void do_start_command (start_request_t *request) {
   int nargs;
   char **args;
 
+  /* Check there is a command */
   if (request->command_text[0] == '\0') {
     error("Empty command in start message", "");
     return;
   }
 
-  /* Procreate */
-  res = fork();
-  if (res == -1) {
-    perror("fork");
-    error("Cannot fork", "");
-    return;
-  } else if (res != 0) {
-    /* Forker code */
-    cur_cell = malloc(sizeof(command_cell));
-    if (cur_cell == NULL) {
-      perror("malloc");
-      error("Cannot malloc a new cell", "");
-      return;
-    }
-    cur_cell->pid = res;
-    cur_cell->number = request->number;
-    cur_cell->next = first_cell;
-    first_cell = cur_cell;
-    if (cur_cell->next != NULL) {
-      (cur_cell->next)->prev = cur_cell;
-    } else {
-      last_cell = cur_cell;
-    }
-    if (debug) {
-      printf ("Forked pid %d\n", res);
-    }
-    return;
-  }
-
-  /* Child code */
-  /* Check all strings */
+  /* Check all strings are propoerly terminated */
   if (! has_2_nuls(request->command_text,
                    sizeof(request->command_text)) ) {
     error("Invalid text in start command", "");
@@ -182,8 +155,43 @@ void do_start_command (start_request_t *request) {
     error("Invalid text in start stderr", "");
     exit(FATAL_ERROR_EXIT_CODE);
   }
-    
 
+  /* Procreate */
+  res = fork();
+  if (res == -1) {
+    perror("fork");
+    error("Cannot fork", "");
+    return;
+  } else if (res != 0) {
+    /***************/
+    /* Forker code */
+    /***************/
+    cur_cell = malloc(sizeof(command_cell));
+    if (cur_cell == NULL) {
+      perror("malloc");
+      error("Cannot malloc a new cell", "");
+      return;
+    }
+    /* Allocate a cell and store command and pid */
+    cur_cell->pid = res;
+    cur_cell->number = request->number;
+    cur_cell->next = first_cell;
+    first_cell = cur_cell;
+    if (cur_cell->next != NULL) {
+      (cur_cell->next)->prev = cur_cell;
+    } else {
+      last_cell = cur_cell;
+    }
+    if (debug) {
+      printf ("Forked pid %d\n", res);
+    }
+    /* Done */
+    return;
+  }
+
+  /**************/
+  /* Child code */
+  /**************/
   /* Set current directory */
   if (request->currend_dir[0] != '\0') {
     if (chdir(request->currend_dir) != 0) {
@@ -258,7 +266,7 @@ void do_start_command (start_request_t *request) {
     }
   }
 
-  /* Count prog_name + arguments */
+  /* Count program name + arguments */
   nargs = 0;
   start = request->command_text;
   while (*start != '\0') {
@@ -270,7 +278,7 @@ void do_start_command (start_request_t *request) {
   /* Need one slot more for NULL */
   nargs++;
 
-  /* allocate table */
+  /* Allocate table */
   args = malloc(nargs * sizeof(char*));
   if (args == NULL) {
     perror("malloc");
@@ -278,7 +286,7 @@ void do_start_command (start_request_t *request) {
     exit(FATAL_ERROR_EXIT_CODE);
   }
 
-  /* Fill table 0 <- program name */
+  /* Fill table[0] <- program name */
   args[0] = request->command_text;
   start = request->command_text;
   while (*start != '\0') start++;
@@ -293,6 +301,7 @@ void do_start_command (start_request_t *request) {
     nargs++;
   }
   args[nargs] = NULL;
+
   if (debug) {
     int li = 0;
     printf ("Command line: >%s<", request->command_text);
@@ -306,7 +315,7 @@ void do_start_command (start_request_t *request) {
   /* Now the exec */    
   if (execv(request->command_text, args) == -1) {
     perror("execv");
-    error("Cannot exec command", request->command_text);
+    error("Cannot exec command: ", request->command_text);
     exit(1);
   } 
   /* Never reached */
@@ -350,19 +359,19 @@ int main (int argc, char *argv[]) {
   } else {
     if (soc_link_port(soc, port_no) == BS_ERROR) {
       perror ("linking socket");
-      fatal("Cannot bind socketto no: ", argv[1]);
+      fatal("Cannot bind socket to no: ", argv[1]);
       exit (FATAL_ERROR_EXIT_CODE);
     }
   }
 
-  /* Get socket fd */
+  /* Get socket fd  for the select */
   if (soc_get_id(soc, &soc_fd) == BS_ERROR) {
     perror ("getting socket fd");
-    fatal("Cannot get sock fd", "");
+    fatal("Cannot get socket fd", "");
     exit (FATAL_ERROR_EXIT_CODE);
   }
 
-  /* Create pipe */
+  /* Create pipe and save writting fd for sigchild handler */
   if (pipe(pipe_fd) == -1) {
     perror("pipe");
     fatal("Cannot create pipe", "");
@@ -370,7 +379,7 @@ int main (int argc, char *argv[]) {
   }
   write_on_me = pipe_fd[1];
 
-  /* Build select data */
+  /* Build select mask */
   nfds = 0;
   FD_ZERO (&saved_mask);
   FD_SET(soc_fd, &saved_mask);
@@ -395,14 +404,15 @@ int main (int argc, char *argv[]) {
   /* Init list of running commands */
   first_cell = NULL;
   last_cell = NULL;
-  cur_cell = NULL;
 
+
+  /* Ready */
   fprintf(stderr, "%s ready. %s\n", PROG_NAME, (debug ? "Debug on." : ""));
 
   /* Main loop */
   for (;;) {
 
-    /* Select loop */
+    /* Select loop while EINTR */
     for (;;) {
       memcpy(&select_mask, &saved_mask, sizeof(fd_set));
       res = select(nfds+1, &select_mask, (fd_set*)NULL, (fd_set*)NULL,
@@ -416,10 +426,11 @@ int main (int argc, char *argv[]) {
       continue;
     }
 
+    /* Where data to read? */
     if (FD_ISSET(pipe_fd[0], &select_mask)) {
       report_message_t report_message;
 
-      /* Data on pipe */
+      /* Data on pipe, read the byte */
       if (debug) {
         printf ("Data on pipe\n");
       }
@@ -437,7 +448,7 @@ int main (int argc, char *argv[]) {
         printf ("Data read on pipe\n");
       }
 
-      /* Look for exited children*/
+      /* Look for several exited children */
       for (;;) {
 
         /* Get a dead pid */
@@ -475,12 +486,14 @@ int main (int argc, char *argv[]) {
           error("Cannot find in list pid: ", dbg);
           continue;
         }
+
+        /* Found the command number */
         report_message.number = cur_cell->number;
         if (debug) {
           printf ("Command was %d\n", report_message.number);
         }
 
-        /* Free cell */
+        /* Free the cell */
         if (cur_cell->next != NULL) {
           (cur_cell->next)->prev = cur_cell->prev;
         } else {
@@ -493,6 +506,7 @@ int main (int argc, char *argv[]) {
         }
         free(cur_cell);
 
+        /* Send report */
         if (soc_send(soc, (soc_message)&report_message, sizeof(report_message)) == BS_ERROR) {
           perror("sending on socket");
           error("Cannot send report message", "");
@@ -502,11 +516,13 @@ int main (int argc, char *argv[]) {
         }
 
       } /* For each dead child */
+
     } else if (FD_ISSET(soc_fd, &select_mask)) {
+      /* A request */
       request_message_t request_message;
       soc_length        request_len;
       boolean           received;
-      /* A request */
+
       if (debug) {
         printf ("Data on socket\n");
       }
@@ -548,6 +564,8 @@ int main (int argc, char *argv[]) {
         if (debug) {
           printf ("Pid to kill is %d\n", cur_cell->pid);
         }
+
+        /* Kill the child */
         if (kill(cur_cell->pid, request_message.kill_req.signal_number) == -1) {
           char dbg[50];
           perror("kill");
@@ -555,6 +573,7 @@ int main (int argc, char *argv[]) {
           error("Cannot kill child pid: ", dbg);
         }
       } else {
+
         /* Start command */
         if (debug) {
           printf ("Request start\n");

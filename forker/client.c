@@ -1,5 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 
 #include "get_line.h"
 
@@ -7,7 +10,8 @@
 #include "forker_messages.h"
 
 
-
+/* To is:   "bla\0bla\0...bla\0\0 */
+/* becomes: "bla\0bla\0...bla\0str\0\0 */
 void cat_str (char *to, char *str) {
   char p;
 
@@ -38,6 +42,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  /* Socket stuff */
   if (soc_open(&soc) == BS_ERROR) {
     perror("soc_open");
     exit(1);
@@ -53,13 +58,18 @@ int main(int argc, char *argv[]) {
 
   number = 0;
   for (;;) {
+    printf ("\n");
+    /* Dest is affected by message reception */
     if (soc_set_dest_service(soc, "localhost", FALSE, argv[1]) == BS_ERROR) {
       perror("soc_set_dest_service");
       exit(1);
     }
+
     printf ("Start Kill Read (s k r) ? ");
     i = get_line (NULL, buff, sizeof(buff));
+
     if (strcmp(buff, "s") == 0) {
+      /* Start */
       memset(request.start_req.command_text, 0,
              sizeof(request.start_req.command_text));
       memset(request.start_req.environ_variables, 0,
@@ -127,6 +137,7 @@ int main(int argc, char *argv[]) {
       }
 
     } else if (strcmp(buff, "k") == 0) {
+      /* Kill */
       request.kind = kill_command;
       for (;;) {
         printf ("Number ? ");
@@ -149,14 +160,23 @@ int main(int argc, char *argv[]) {
       
 
     } else if (strcmp(buff, "r") == 0) {
+      /* Read report */
       report_len = sizeof(report);
       if (soc_receive(soc, &something, (char*)&report, &report_len) == BS_ERROR) {
         perror("soc_receive");
       } else if (something) {
-        printf ("Report: command %d exit %d\n", report.number, report.exit_code);
+        printf ("Report: command %d code %d ", report.number, report.exit_code);
+        if (WIFEXITED(report.number)) {
+          printf ("exit normally code %d\n", WEXITSTATUS(report.exit_code));
+        } else if (WIFSIGNALED(report.number)) {
+          printf ("exit on signal %d\n", WTERMSIG(report.exit_code));
+        } else {
+          printf ("stopped on signal %d\n", WSTOPSIG(report.exit_code));
+        }
       } else {
         printf ("No report\n");
       }
     }
   }
 }
+
