@@ -330,6 +330,35 @@ int do_start_command (start_request_t *request,
 }
 
 
+/* Check message kind and size are correct and match */
+/* len has to be size of request_u or size of current request_t */
+boolean msg_ok (soc_length len, request_kind_list kind) {
+  switch (kind) {
+    case start_command:
+      if (len == sizeof(start_request_t)) return TRUE;
+    break;
+    case kill_command:
+      if (len == sizeof(kill_request_t)) return TRUE;
+    break;
+    case fexit_command:
+      if (len == sizeof(fexit_request_t)) return TRUE;
+    break;
+    case ping_command:
+      if (len == 0) return TRUE;
+    break;
+    default:
+      error("Received a message with invalid command", "");
+      return FALSE;
+    break;
+  }
+  if (len == sizeof(request_u)) {
+    return TRUE;
+  } else {
+    error("Received a message of invalid size", "");
+    return FALSE;
+  }
+}
+
 int main (int argc, char *argv[]) {
 
   char *debug_var;
@@ -596,17 +625,14 @@ int main (int argc, char *argv[]) {
       }
 
       /* Check message */
-      if (request_len != sizeof(request_message)) {
+      if (request_len < sizeof(request_message.kind)) {
         error("Received a message of invalid size", "");
         continue;
       }
-      if ( (request_message.kind != start_command)
-        && (request_message.kind != kill_command)
-        && (request_message.kind != fexit_command)
-        && (request_message.kind != ping_command) ) {
-        error("Received a message with invalid command", "");
+      if (! msg_ok (request_len - sizeof(request_message.kind), request_message.kind) ) {
         continue;
       }
+
 
       /* Get client host and port */
       if (soc_get_dest_host(soc, &request_host) != SOC_OK) {
