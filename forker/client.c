@@ -76,8 +76,8 @@ int main(int argc, char *argv[]) {
   }
 
   /* Get current host and port */
-  if (soc_get_local_host(&my_host) != SOC_OK) {
-    perror ("soc_get_local_host");
+  if (soc_get_local_host_id(&my_host) != SOC_OK) {
+    perror ("soc_get_local_host_id");
     exit(1);
   }
   if (soc_get_linked_port(soc, &my_port) != SOC_OK) {
