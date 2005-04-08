@@ -34,11 +34,20 @@ extern int clearenv (void);
 typedef struct com_cell {
   command_number  number;
   int             pid;
+  soc_token       soc;
   soc_host        client_host;
   soc_port        client_port;
   struct com_cell *next, *prev;
 } command_cell;
-command_cell *first_cell, *last_cell;
+command_cell *first_com_cell, *last_com_cell;
+
+/* Known clients */
+typedef struct cli_cell {
+  soc_token       soc;
+  int             fd;
+  struct cli_cell *next, *prev;
+} client_cell;
+client_cell *first_cli_cell, *last_cli_cell;
 
 /* Fd to write on when child exited */
 static int write_on_me;
@@ -60,23 +69,24 @@ static void flush (void) {
 static char *date_str (void) {
   struct timeval time;
   struct tm *tm_date_p;
-  static char printed_date[20];
+  static char printed_date[50];
 
   gettimeofday (&time, NULL);
   tm_date_p = gmtime( (time_t*) &(time.tv_sec) );
-  sprintf (printed_date, "%04d/%02d/%02d %02d:%02d:%02d",
+  sprintf (printed_date, "%04d/%02d/%02d %02d:%02d:%02d.%03ld",
         (tm_date_p->tm_year)+1900, (tm_date_p->tm_mon)+1, tm_date_p->tm_mday,
-        tm_date_p->tm_hour, tm_date_p->tm_min, tm_date_p->tm_sec);
+        tm_date_p->tm_hour, tm_date_p->tm_min, tm_date_p->tm_sec,
+        time.tv_usec/1000);
 
   return printed_date;
 }
 
 /* Display error and fataf error message */
-static void fatal (char *msg, char *extra) {
-  fprintf(stderr, "% %s FATAL: %s%s.\n", date_str(), PROG_NAME, msg, extra);
+static void fatal (const char *msg, const char *extra) {
+  fprintf(stderr, "%s %s FATAL: %s%s.\n", date_str(), PROG_NAME, msg, extra);
 }
-static void error (char *msg, char *extra) {
-  fprintf(stderr, "%s ERROR: %s%s.\n", date_str(), PROG_NAME, msg, extra);
+static void error (const char *msg, const char *extra) {
+  fprintf(stderr, "%s %s ERROR: %s%s.\n", date_str(), PROG_NAME, msg, extra);
 }
 
 /* Display trace message */
@@ -158,10 +168,11 @@ static boolean has_2_nuls (char *str, int len) {
 
 /* Fork and launch a command, return forked pid or -1 */
 static int do_start_command (start_request_t *request,
+                             soc_token soc,
                              soc_host *client_host,
                              soc_port client_port) {
   int res;
-  command_cell *cur_cell;
+  command_cell *cur_com_cell;
   int fd;
   char *start;
   int nargs;
@@ -201,6 +212,7 @@ static int do_start_command (start_request_t *request,
   }
 
   /* Procreate */
+  flush();
   res = fork();
   if (res == -1) {
     perror("fork");
@@ -210,24 +222,26 @@ static int do_start_command (start_request_t *request,
     /***************/
     /* Forker code */
     /***************/
-    cur_cell = malloc(sizeof(command_cell));
-    if (cur_cell == NULL) {
+    cur_com_cell = malloc(sizeof(command_cell));
+    if (cur_com_cell == NULL) {
       perror("malloc");
-      error("Cannot malloc a new cell", "");
+      error("Cannot malloc a new command cell", "");
       return -1;
     }
     /* Allocate a cell and store command and pid */
-    cur_cell->pid = res;
-    cur_cell->number = request->number;
-    memcpy (&(cur_cell->client_host), client_host, sizeof(soc_host));
-    cur_cell->client_port = client_port;
-    cur_cell->next = first_cell;
-    cur_cell->prev = NULL;
-    first_cell = cur_cell;
-    if (cur_cell->next != NULL) {
-      (cur_cell->next)->prev = cur_cell;
+    cur_com_cell->pid = res;
+    cur_com_cell->number = request->number;
+    cur_com_cell->soc = soc;
+    memcpy (&(cur_com_cell->client_host), client_host, sizeof(soc_host));
+    cur_com_cell->client_port = client_port;
+    cur_com_cell->client_port = client_port;
+    cur_com_cell->next = first_com_cell;
+    cur_com_cell->prev = NULL;
+    first_com_cell = cur_com_cell;
+    if (cur_com_cell->next != NULL) {
+      (cur_com_cell->next)->prev = cur_com_cell;
     } else {
-      last_cell = cur_cell;
+      last_com_cell = cur_com_cell;
     }
     if (debug) {
       trace ("Forked pid %d", res);
@@ -270,6 +284,10 @@ static int do_start_command (start_request_t *request,
 
   /* Output flow */
   if (request->output_flow[0] != '\0') {
+    if (debug) {
+      trace ("Setting stdout to >%s< append %d", request->output_flow,
+              (int)request->append_output);
+    }
     fd = open (request->output_flow,
                 O_CREAT | O_WRONLY | (request->append_output ? O_APPEND : O_TRUNC),
                 FILE_RIGHTS);
@@ -293,6 +311,10 @@ static int do_start_command (start_request_t *request,
 
   /* Error flow */
   if (request->error_flow[0] != '\0') {
+    if (debug) {
+      trace ("Setting stderr to >%s< append %d", request->error_flow,
+              (int)request->append_error);
+    }
     fd = open (request->error_flow,
                 O_CREAT | O_WRONLY | (request->append_error ? O_APPEND : O_TRUNC),
                 FILE_RIGHTS);
@@ -368,7 +390,9 @@ static int do_start_command (start_request_t *request,
     error("Cannot exec command: ", request->command_text);
     exit(FATAL_ERROR_EXIT_CODE);
   } 
+
   /* Never reached */
+  exit(FATAL_ERROR_EXIT_CODE);
 }
 
 
@@ -401,20 +425,80 @@ static boolean msg_ok (soc_length len, request_kind_list kind) {
   }
 }
 
+static boolean send (soc_token dest, soc_message msg,  soc_length len) {
+  int res;
+
+  /* Try to send */
+  res = soc_send(dest, msg, len);
+  if (res == SOC_OK) {
+    if (debug) {
+      trace ("Report message sent");
+    }
+    return TRUE;
+  } else if (res == SOC_WOULD_BLOCK) {
+    if (debug) {
+      trace ("Overflow while sending report");
+    }
+    return TRUE;
+  } else if (res != SOC_TAIL_ERR) {
+    perror("sending on socket");
+    error("Cannot send report message", "");
+    return FALSE;
+  }
+
+  /* Socket was in overflow */
+  res = soc_resend(dest);
+  if (res != SOC_OK) {
+    perror("sending on socket");
+    error("Cannot resend previous report message", "");
+    return FALSE;
+  }
+  if (debug) {
+    trace ("Previous report message resent");
+  }
+
+  /* Retry to send */
+  res = soc_send(dest, msg, len);
+  if (res == SOC_OK) {
+    if (debug) {
+      trace ("Report message sent");
+    }
+    return TRUE;
+  } else if (res == SOC_WOULD_BLOCK) {
+    if (debug) {
+      trace ("Overflow while sending report");
+    }
+    return TRUE;
+  } else {
+    perror("sending on socket");
+    error("Cannot send report message", "");
+    return FALSE;
+  }
+}
+
+
 int main (int argc, char *argv[]) {
 
   char *debug_var;
-  soc_token soc = NULL;
+  soc_token service_soc = NULL;
+  soc_token client_soc = NULL;
+  boolean udp_mode;
   int port_no;
   int nfds;
   fd_set saved_mask, select_mask;
-  int soc_fd;
+  int service_fd, client_fd;
   int pipe_fd[2];
   int res;
   char c;
   pid_t a_pid;
-  command_cell *cur_cell;
+  command_cell *cur_com_cell;
+  client_cell  *cur_cli_cell = NULL;
   report_message_t report;
+  request_message_t request_message;
+  soc_length        request_len;
+  soc_host          request_host;
+  soc_port          request_port;
+
 
   /* Init debug */
   debug_var = getenv(FORKER_DEBUG);
@@ -426,39 +510,49 @@ int main (int argc, char *argv[]) {
     debug = FALSE;
   } /* Else unchanged from compilation option */
 
+
+  /* Check and parse the argument: -u/-t then port_num/port_no */
+  udp_mode = -1;
+  if (argc == 3) {
+    if (strcmp (argv[1], "-u") == 0) {
+      udp_mode = TRUE;
+    } else if (strcmp (argv[1], "-t") == 0) {
+      udp_mode = FALSE;
+    }
+  }
+  if (udp_mode == -1) {
+    fatal("Invalid argument. -u/-t then port_name/port_num expected", "");
+    exit(FATAL_ERROR_EXIT_CODE);
+  }
+
   /* Create the socket */
-  if (soc_open(&soc, udp_socket) != SOC_OK) {
+  if (soc_open(&service_soc,
+               (udp_mode ? udp_socket : tcp_header_socket) ) != SOC_OK) {
     perror("opening socket");
     fatal("Cannot create socket", "");
     exit(FATAL_ERROR_EXIT_CODE);
   }
 
-  /* Check and parse the argument: port num or port no */
-  if (argc != 2) {
-    fatal("Invalid argument. Port name/num expected.", "");
-    exit(FATAL_ERROR_EXIT_CODE);
-  }
-
   /* Bind */
-  port_no = atoi(argv[1]);
+  port_no = atoi(argv[2]);
   if (port_no <= 0) {
-    if (soc_link_service(soc, argv[1]) != SOC_OK) {
+    if (soc_link_service(service_soc, argv[2]) != SOC_OK) {
       perror ("linking socket");
-      fatal("Cannot bind socket to name: ", argv[1]);
+      fatal("Cannot bind socket to name: ", argv[2]);
       exit (FATAL_ERROR_EXIT_CODE);
     }
   } else {
-    if (soc_link_port(soc, port_no) != SOC_OK) {
+    if (soc_link_port(service_soc, port_no) != SOC_OK) {
       perror ("linking socket");
-      fatal("Cannot bind socket to no: ", argv[1]);
+      fatal("Cannot bind socket to no: ", argv[2]);
       exit (FATAL_ERROR_EXIT_CODE);
     }
   }
 
   /* Get socket fd  for the select */
-  if (soc_get_id(soc, &soc_fd) != SOC_OK) {
-    perror ("getting socket fd");
-    fatal("Cannot get socket fd", "");
+  if (soc_get_id(service_soc, &service_fd) != SOC_OK) {
+    perror ("getting service socket fd");
+    fatal("Cannot get service socket fd", "");
     exit (FATAL_ERROR_EXIT_CODE);
   }
 
@@ -486,8 +580,8 @@ int main (int argc, char *argv[]) {
   /* Build select mask */
   nfds = 0;
   FD_ZERO (&saved_mask);
-  FD_SET(soc_fd, &saved_mask);
-  if (soc_fd > nfds) nfds = soc_fd;
+  FD_SET(service_fd, &saved_mask);
+  if (service_fd > nfds) nfds = service_fd;
   FD_SET(pipe_fd[0], &saved_mask);
   if (pipe_fd[0] > nfds) nfds = pipe_fd[0];
 
@@ -505,9 +599,9 @@ int main (int argc, char *argv[]) {
     exit (FATAL_ERROR_EXIT_CODE);
   }
 
-  /* Init list of running commands */
-  first_cell = NULL;
-  last_cell = NULL;
+  /* Init lists of commands and clients*/
+  first_com_cell = last_com_cell = NULL;
+  first_cli_cell = last_cli_cell = NULL;
 
   /* Clear environ */
   if (clearenv() != 0) {
@@ -593,11 +687,11 @@ int main (int argc, char *argv[]) {
         }
 
         /* Look for pid in list */
-        cur_cell = last_cell;
-        while ( (cur_cell != NULL) && (cur_cell->pid != a_pid) ) {
-          cur_cell = cur_cell->prev;
+        cur_com_cell = last_com_cell;
+        while ( (cur_com_cell != NULL) && (cur_com_cell->pid != a_pid) ) {
+          cur_com_cell = cur_com_cell->prev;
         }
-        if (cur_cell == NULL) {
+        if (cur_com_cell == NULL) {
           char dbg[50];
           sprintf(dbg, "%d", a_pid);
           error("Cannot find in list pid: ", dbg);
@@ -605,200 +699,300 @@ int main (int argc, char *argv[]) {
         }
 
         /* Found the command number */
-        report.exit_rep.number = cur_cell->number;
-        report.exit_rep.exit_pid = cur_cell->pid;
+        report.exit_rep.number = cur_com_cell->number;
+        report.exit_rep.exit_pid = cur_com_cell->pid;
         if (debug) {
           trace ("Command was %d", report.exit_rep.number);
         }
 
         /* Set dest to client for report */
         do_send = TRUE;
-        if (soc_set_dest(soc, &(cur_cell->client_host), cur_cell->client_port)
-             != SOC_OK) {
-          error("Cannot set dest to client", "");
-          do_send = FALSE;
+        if (udp_mode) {
+          client_soc = service_soc;
+          if (soc_set_dest_host_port(client_soc, &(cur_com_cell->client_host),
+                                       cur_com_cell->client_port) != SOC_OK) {
+            error("Cannot set dest to client", "");
+            do_send = FALSE;
+          }
+        } else {
+          client_soc = cur_com_cell->soc;
         }
-        if (debug) {
+        if (do_send && debug) {
           trace ("Dest set to host %u port %u",
-                  cur_cell->client_host.integer,
-                  cur_cell->client_port);
+                  cur_com_cell->client_host.integer,
+                  cur_com_cell->client_port);
         }
 
         /* Free the cell */
-        if (cur_cell->next != NULL) {
-          (cur_cell->next)->prev = cur_cell->prev;
+        if (cur_com_cell->next != NULL) {
+          (cur_com_cell->next)->prev = cur_com_cell->prev;
         } else {
-          last_cell = cur_cell->prev;
+          last_com_cell = cur_com_cell->prev;
         }
-        if (cur_cell->prev != NULL) {
-          (cur_cell->prev)->next = cur_cell->next;
+        if (cur_com_cell->prev != NULL) {
+          (cur_com_cell->prev)->next = cur_com_cell->next;
         } else {
-          first_cell = cur_cell->next;
+          first_com_cell = cur_com_cell->next;
         }
-        free(cur_cell);
+        free(cur_com_cell);
 
         /* Send report */
         if (do_send) {
-          if (soc_send(soc, (soc_message)&report,
-                             sizeof(report)) != SOC_OK) {
-            perror("sending on socket");
-            error("Cannot send exit report message", "");
-          }
-          if (debug) {
+          res = send(client_soc, (soc_message)&report, sizeof(report));
+          if (debug && res) {
             trace ("Exit report sent");
           }
         }
 
       } /* For each dead child */
+      continue;
+    }
 
-    } else if (FD_ISSET(soc_fd, &select_mask)) {
-      /* A request */
-      request_message_t request_message;
-      soc_length        request_len;
-      soc_host          request_host;
-      soc_port          request_port;
-
+    if ( (!udp_mode) && FD_ISSET(service_fd, &select_mask)) {
       if (debug) {
-        trace ("Data on socket");
+        trace ("Accepting new client");
       }
-
-      /* Read request */
-      request_len = soc_receive(soc, &request_message,
-                                sizeof(request_message), TRUE);
-      if (request_len < SOC_OK) {
-        perror("receiving from socket");
-        error("Cannot receive request message", "");
+      /* Accept */
+      client_soc = init_soc;
+      if (soc_accept(service_soc, &client_soc) != SOC_OK) {
+        perror ("accepting new client");
+        error ("Cannot accept new client", "");
+        continue;
+      }
+      if (soc_set_blocking(client_soc, FALSE) != SOC_OK) {
+        perror ("setting non blocking");
+        error ("Cannot set new client socket non blocking", "");
+      }
+      if (soc_get_id (client_soc, &client_fd) != SOC_OK) {
+        perror ("getting new client fd");
+        error ("Cannot get fd of new client", "");
         continue;
       }
 
-      /* Check message */
-      if (request_len < sizeof(request_message.kind)) {
-        error("Received a message of invalid size", "");
+      /* Insert client cell */
+      cur_cli_cell = malloc(sizeof(client_cell));
+      if (cur_cli_cell == NULL) {
+        perror("malloc");
+        error("Cannot malloc a new client cell", "");
         continue;
       }
-      if (! msg_ok (request_len - sizeof(request_message.kind), request_message.kind) ) {
-        continue;
-      }
-
-
-      /* Get client host and port */
-      if (soc_get_dest_host(soc, &request_host) != SOC_OK) {
-        error("Cannot get client host", "");
-        continue;
-      }
-      if (soc_get_dest_port(soc, &request_port) != SOC_OK) {
-        error("Cannot get client port", "");
-        continue;
-      }
-      if (debug) {
-        trace ("Client is host %u port %u",
-                request_host.integer,
-                request_port);
-      }
-
-      if (request_message.kind == kill_command) {
-
-        report.kind = kill_report;
-        report.kill_rep.number = request_message.kill_req.number;
-        if (debug) {
-          trace ("Request kill num %d sig %d",
-                request_message.kill_req.number,
-                request_message.kill_req.signal_number);
-        }
-
-        /* Kill command: Find pid from criteria Num, host, port */
-        report.kill_rep.killed_pid = -1;
-        cur_cell = last_cell;
-        while (cur_cell != NULL) {
-          if ( (cur_cell->number == request_message.kill_req.number)
-            && (cur_cell->client_port == request_port)
-            && (memcmp(&(cur_cell->client_host),
-                       &request_host,
-                       sizeof(soc_host)) == 0) ) {
-              break;
-          }
-          cur_cell = cur_cell->prev;
-        }
-        if (cur_cell == NULL) {
-          if (debug) {
-            trace ("Cannot find command-host-port in list");
-          }
-          report.kill_rep.killed_pid = -1;
-        } else {
-          report.kill_rep.killed_pid = cur_cell->pid;
-          if (debug) {
-            trace ("Pid to kill is %d", cur_cell->pid);
-          }
-        }
-
-        /* Kill the child */
-        if (report.kill_rep.killed_pid != -1) {
-          if (kill(cur_cell->pid, request_message.kill_req.signal_number) == -1) {
-            char dbg[50];
-            perror("kill");
-            sprintf(dbg, "%d", cur_cell->pid);
-            error("Cannot kill child pid: ", dbg);
-            report.kill_rep.killed_pid = -1;
-          }
-        }
-      } else if (request_message.kind == start_command) {
-
-        /* Start command */
-        if (debug) {
-          trace ("Request start %d: %s",
-                  request_message.start_req.number,
-                 request_message.start_req.command_text);
-        }
-        report.kind = start_report;
-        report.start_rep.number = request_message.start_req.number;
-        report.start_rep.started_pid =
-               do_start_command(&request_message.start_req,
-                                &request_host, request_port);
-
-      } else if (request_message.kind == fexit_command) {
-
-        /* Exit command */
-        if (debug) {
-          trace ("Request exit %d", request_message.fexit_req.exit_code);
-        }
-        report.kind = fexit_report;
-
-      } else if (request_message.kind == ping_command) {
-
-        /* Ping command */
-        if (debug) {
-          trace ("Request ping");
-        }
-        report.kind = pong_report;
-
+      cur_cli_cell->soc = client_soc;
+      cur_cli_cell->fd = client_fd;
+      cur_cli_cell->next = first_cli_cell;
+      cur_cli_cell->prev = NULL;
+      first_cli_cell = cur_cli_cell;
+      if (cur_cli_cell->next != NULL) {
+        (cur_cli_cell->next)->prev = cur_cli_cell;
       } else {
-
-        error("Received a message with invalid command", "");
-
+        last_cli_cell = cur_cli_cell;
       }
-
-      /* Send report */
-      if (soc_send(soc, (soc_message)&report,
-                         sizeof(report)) != SOC_OK) {
-        perror("sending on socket");
-        error("Cannot send exit report message", "");
-      }
+ 
+      /* Add to mask */
+      FD_SET(client_fd, &saved_mask);
+      if (client_fd > nfds) nfds = client_fd;
       if (debug) {
-        trace ("Start/Kill/Exit/Pong report sent\n");
+        trace ("New client accepted with fd %d", client_fd);
+      }
+      continue;
+
+    } 
+
+    /* Get client socket */ 
+    client_soc = init_soc;
+    if (udp_mode) {
+      if (FD_ISSET(service_fd, &select_mask)) {
+        client_soc = service_soc;
+        client_fd  = service_fd;
+      }
+    } else {
+      /* Look for client */
+      cur_cli_cell = first_cli_cell;
+      while (cur_cli_cell != NULL) {
+        if (FD_ISSET(cur_cli_cell->fd, &select_mask)) {
+          client_soc = cur_cli_cell->soc;
+          client_fd = cur_cli_cell->fd;
+          break;
+        }
+        cur_cli_cell = cur_cli_cell->next;
+      }
+    }
+
+    if (client_soc == init_soc) {
+      int i;
+      error("received data on an unknown fd", "");
+      for (i = 0; i <= nfds; i++) {
+        if (FD_ISSET(i, &select_mask)) {
+          FD_CLR(i, &saved_mask);
+          trace("removed from mask fd %d", i);
+        }
+      }
+      continue;
+    }
+
+ 
+    /* A request */
+    if (debug) {
+      trace ("Data on socket");
+    }
+
+    /* Read request */
+    request_len = soc_receive(client_soc, &request_message,
+                              sizeof(request_message), udp_mode);
+
+    /* Handle Tcp disconnection */
+    if (!udp_mode && ( (request_len == SOC_CONN_LOST)
+               || (request_len == SOC_READ_0) ) ) {
+      if (debug) {
+        trace ("Disconnection of client on fd %d", client_fd);
+      }
+      
+      FD_CLR(client_fd, &saved_mask);
+      soc_close (&client_soc);
+
+      /* Free the cell */
+      if (cur_cli_cell->next != NULL) {
+        (cur_cli_cell->next)->prev = cur_cli_cell->prev;
+      } else {
+        last_cli_cell = cur_cli_cell->prev;
+      }
+      if (cur_cli_cell->prev != NULL) {
+        (cur_cli_cell->prev)->next = cur_cli_cell->next;
+      } else {
+        first_cli_cell = cur_cli_cell->next;
+      }
+      free(cur_cli_cell);
+      continue;
+    }
+
+    /* Check len */
+    if (request_len < SOC_OK) {
+      perror("receiving from socket");
+      error("Cannot receive request message", "");
+      continue;
+    }
+
+    /* Check message */
+    if (request_len < sizeof(request_message.kind)) {
+      error("Received a message of invalid size", "");
+      continue;
+    }
+    if (! msg_ok (request_len - sizeof(request_message.kind), request_message.kind) ) {
+      continue;
+    }
+
+
+    /* Get client host and port */
+    if (soc_get_dest_host(client_soc, &request_host) != SOC_OK) {
+      error("Cannot get client host", "");
+      continue;
+    }
+    if (soc_get_dest_port(client_soc, &request_port) != SOC_OK) {
+      error("Cannot get client port", "");
+      continue;
+    }
+    if (debug) {
+      trace ("Client is host %u port %u",
+              request_host.integer,
+              request_port);
+    }
+
+    if (request_message.kind == kill_command) {
+
+      report.kind = kill_report;
+      report.kill_rep.number = request_message.kill_req.number;
+      if (debug) {
+        trace ("Request kill num %d sig %d",
+              request_message.kill_req.number,
+              request_message.kill_req.signal_number);
       }
 
-      if (request_message.kind == fexit_command) {
-        if (debug) {
-          trace ("Exiting code %d", request_message.fexit_req.exit_code);
+      /* Kill command: Find pid from criteria Num, host, port */
+      report.kill_rep.killed_pid = -1;
+      cur_com_cell = last_com_cell;
+      while (cur_com_cell != NULL) {
+        if ( (cur_com_cell->number == request_message.kill_req.number)
+          && (cur_com_cell->client_port == request_port)
+          && (memcmp(&(cur_com_cell->client_host),
+                     &request_host,
+                     sizeof(soc_host)) == 0) ) {
+            break;
         }
-        exit(request_message.fexit_req.exit_code);
+        cur_com_cell = cur_com_cell->prev;
       }
-        
+      if (cur_com_cell == NULL) {
+        if (debug) {
+          trace ("Cannot find command-host-port in list");
+        }
+        report.kill_rep.killed_pid = -1;
+      } else {
+        if (debug) {
+          trace ("Pid to kill is %d", cur_com_cell->pid);
+        }
+        report.kill_rep.killed_pid = cur_com_cell->pid;
+      }
+
+      /* Kill the child */
+      if ( (report.kill_rep.killed_pid != -1)
+        && (kill(cur_com_cell->pid,
+                 request_message.kill_req.signal_number) == -1) ) {
+        char dbg[50];
+        perror("kill");
+        sprintf(dbg, "%d", cur_com_cell->pid);
+        error("Cannot kill child pid: ", dbg);
+        report.kill_rep.killed_pid = -1;
+      }
+    } else if (request_message.kind == start_command) {
+
+      /* Start command */
+      if (debug) {
+        trace ("Request start %d: %s",
+                request_message.start_req.number,
+                request_message.start_req.command_text);
+      }
+      report.kind = start_report;
+      report.start_rep.number = request_message.start_req.number;
+      report.start_rep.started_pid =
+             do_start_command(&request_message.start_req,
+                              client_soc,
+                              &request_host, request_port);
+
+    } else if (request_message.kind == fexit_command) {
+
+      /* Exit command */
+      if (debug) {
+        trace ("Request exit %d", request_message.fexit_req.exit_code);
+      }
+      report.kind = fexit_report;
+
+    } else if (request_message.kind == ping_command) {
+
+      /* Ping command */
+      if (debug) {
+        trace ("Request ping");
+      }
+      report.kind = pong_report;
 
     } else {
-      error("Select set unknown fd", "");
+        error("Received a message with invalid command", "");
+        continue;
     }
-      
+
+    /* Send report */
+    if (! send(client_soc, (soc_message)&report, sizeof(report)) ) {
+      perror("sending on socket");
+      error("Cannot send exit report message", "");
+    } else if (debug) {
+      trace ("Start/Kill/Exit/Pong report sent\n");
+    }
+
+    if (request_message.kind == fexit_command) {
+      if (debug) {
+        trace ("Exiting code %d", request_message.fexit_req.exit_code);
+      }
+      exit(request_message.fexit_req.exit_code);
+    }
+        
+
   } /* Main loop */
   
 }

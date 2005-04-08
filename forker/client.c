@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -13,7 +14,7 @@
 
 /* To is:   "bla\0bla\0...bla\0\0 */
 /* becomes: "bla\0bla\0...bla\0str\0\0 */
-void cat_str (char *to, char *str) {
+static void cat_str (char *to, char *str) {
   char p;
 
   p = ' ';
@@ -30,12 +31,12 @@ void cat_str (char *to, char *str) {
 int main(int argc, char *argv[]) {
  
   command_number number;
+  boolean udp_mode;
   soc_token soc = NULL;
   int port_no;
   char buff[500];
   request_message_t request;
   report_message_t report;
-  int   report_len;
   int i, n;
   soc_host  my_host;
   soc_port  my_port;
@@ -44,43 +45,52 @@ int main(int argc, char *argv[]) {
   /* printf("Req_size: %d\n", sizeof(request_message_t)); */
   /* printf("Rep_size: %d\n", sizeof(report_message_t)); */
 
-  if (argc != 3) {
-    fprintf(stderr, "Error. Two args <hostname> <port_name/num> expected.\n");
+  udp_mode = -1;
+  if (argc == 4) {
+    if (strcmp (argv[1], "-u") == 0) {
+      udp_mode = TRUE;
+    } else if (strcmp (argv[1], "-t") == 0) {
+      udp_mode = FALSE;
+    }
+  }
+  if (udp_mode == -1) {
+    fprintf(stderr, "Error. Two args -u/-t <hostname> <port_name/num> expected.\n");
     exit(1);
   }
 
   /* Socket stuff */
-  if (soc_open(&soc, udp_socket) != SOC_OK) {
+  if (soc_open(&soc, (udp_mode ? udp_socket : tcp_header_socket)) != SOC_OK) {
     perror("soc_open");
     exit(1);
   }
-  if (soc_link_dynamic(soc) != SOC_OK) {
+  if (udp_mode && soc_link_dynamic(soc) != SOC_OK) {
     perror("soc_link_dynamic");
     exit(1);
   }
-  port_no = atoi(argv[2]);
+  port_no = atoi(argv[3]);
   if (port_no <= 0) {
-    if (soc_set_dest_service(soc, argv[1], FALSE, argv[2]) != SOC_OK) {
+    if (soc_set_dest_name_service(soc, argv[2], FALSE, argv[3]) != SOC_OK) {
       perror("soc_set_dest_service");
       exit (1);
     }
   } else {
-    if (soc_set_dest_port(soc, argv[1], FALSE, port_no) != SOC_OK) {
-      perror("soc_set_dest_service");
+    if (soc_set_dest_name_port(soc, argv[2], FALSE, port_no) != SOC_OK) {
+      perror("soc_set_dest_port");
       exit (1);
     }
   }
   if (soc_set_blocking(soc, FALSE) != SOC_OK) {
-    perror("soc_set_dest_service");
+    perror("soc_set_blocking");
     exit(1);
   }
 
   /* Get current host and port */
   if (soc_get_local_host_id(&my_host) != SOC_OK) {
-    perror ("soc_get_local_host_id");
+    perror ("soc_get_local_host");
     exit(1);
   }
-  if (soc_get_linked_port(soc, &my_port) != SOC_OK) {
+  my_port = 0;
+  if (udp_mode && soc_get_linked_port(soc, &my_port) != SOC_OK) {
     perror("soc_get_linked_port");
     exit(1);
   }
@@ -249,6 +259,9 @@ int main(int argc, char *argv[]) {
         }
       } else if (n == SOC_WOULD_BLOCK) {
         printf ("No report\n");
+      } else if (n == SOC_READ_0) {
+        printf ("Disconnected\n");
+        exit (0);
       } else {
         perror("soc_receive");
       }
