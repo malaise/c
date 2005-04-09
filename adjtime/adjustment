@@ -1,0 +1,33 @@
+3/11/94
+Rappel des actions correctrices:
+- Implementer les seuils (ETI et CS_SYNC)
+- Implementer le lissage (ETI et CS_SYNC)
+- Nettoyer HRT
+
+Pour ETI et CS_SYNC, la strategie d'utilisation
+d'adjtime devrait etre la suivante:
+- Chaque fois qu'on appelle adjtime, l'argument
+est conserve.
+- Quand un ecart est constate et que la situation
+necessite un lissage (init ou non, valeur par
+rapport aux seuils):
+ * Verifier que l'ecart est dans le meme sens
+   et inferieur en valeur absolue a la correction
+   en cours (argument conserve)
+ * Si non, adjtime(ecart constate)
+
+- Quand l'ecart constate est inferieur au seuil
+et que la valeur courante du rattrapage est superieure
+au seuil, annuler le rattrapage.
+
+4/11/94
+Autre proposition d'algorithme:
+On n'a pas besoin de concerver l'argument mais
+on appelle adjtime(0) a chaque fois.
+S0 : Seuil en dessous duquel on ne fait rien
+EcartConstate := TReference - Tlocal
+EcartEnRattrapage := adjtime(0)
+si  | EcartConstate - EcartEnRattrapage |  >= S0
+  adjtime(EcartConstate)
+
+Cout d'un appel adjtime : 0.1 ms environ

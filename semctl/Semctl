@@ -1,0 +1,40 @@
+#!/bin/bash
+
+DIR=.
+
+if [ `uname` != Linux ] ; then
+  sem_list=`ipcs -s | awk ' ($1 == "s") {print $2} '`
+else
+  sem_list=`ipcs -s | awk ' { if ($2 == int($2)) { print $2} }'`
+fi
+
+if [ "$1" = "-a" ] ; then
+  shift
+  for sem in $sem_list ; do
+    $DIR/semctl -i $sem $*
+    echo
+  done
+elif [ "$1" = "-b" ] ; then
+  shift
+  for sem in $sem_list ; do
+    $DIR/semctl -i $sem s
+    res=$?
+    if [ $res -eq 1 ] ; then
+      $DIR/semctl -i $sem b
+      echo
+    fi
+  done
+elif [ \( "$1" = "-h" \) -o \( "$1" = "" \) ] ; then
+  echo "Usage: `basename $0` <command>"
+  echo "   <command> ::=  -a  |  -b  |  <semspec>"
+  echo "      -a = all sems      -b = all blocked"
+  echo ""
+  echo "   <semspec> ::=  <sem> [ <semnum> ]"
+  echo "   <sem>     ::=  -i <semid>  |  -k <semkey>"
+  echo "   <semnum>  ::=  <num>  |  b  |  s"
+  echo "      b = blocked nums of sem"
+  echo "      s = silent (exit 0 or 1 if some num blocked)"
+else
+  $DIR/semctl $*
+fi
+
