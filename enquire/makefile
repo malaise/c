@@ -5,3 +5,4 @@ EXES := enquire
 include $(TEMPLATES)/c.mk
 
 enquire.c : float.h limits.h
+

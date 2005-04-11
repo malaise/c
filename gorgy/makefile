@@ -17,12 +17,8 @@ LARGS_gorgy := $(SOCKET)/$(LIB)/libsocket.a -ltimeval
 
 include $(TEMPLATES)/c.mk
 
-$(LIB)/libtty.a $(LIB)/libtty.so : $(OBJS_libtty:%=$(LIB)/%)
-$(LIB)/libudp.a $(LIB)/libudp.so : $(OBJS_libudp:%=$(LIB)/%)
-
 udp.c : udp.h
 tty.c : tty.h
 serial_spy.c : tty.h
 gorgy.c : tty.h udp.h
-
 

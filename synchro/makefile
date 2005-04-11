@@ -24,10 +24,9 @@ LIBS_eti := gorgy_decode.a
 
 include $(TEMPLATES)/c.mk
 
-$(LIB)/gorgy_decode.a $(LIB)/gorgy_decode.so : $(OBJS_gorgy_decode:%=$(LIB)/%)
-
 eti.c : gorgy_decode.h
 gorgy_decode.c : gorgy_decode.h
 synchro_client.c : synchro.h
 synchro_serial.c : gorgy_decode.h
 synchro_server.c : synchro.h
+

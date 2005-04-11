@@ -4,4 +4,3 @@ EXES := settime dt
 
 include $(TEMPLATES)/c.mk
 
-

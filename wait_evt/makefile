@@ -7,7 +7,5 @@ CARGS_wait_evt :=
 
 include $(TEMPLATES)/c.mk
 
-$(LIB)/libwait_evt.a $(LIB)/libwait_evt.so : $(OBJS_libwait_evt:%=$(LIB)/%)
-
 wait_evt.c : wait_evt.h
 

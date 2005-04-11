@@ -9,9 +9,6 @@ LIBS_t_rusage := librusage.a
 
 include $(TEMPLATES)/c.mk
 
-$(LIB)/librusage.a $(LIB)/librusage.so : $(OBJS_librusage:%=$(LIB)/%)
-
-
 rusage.c : rusage.h
 anal_rusage.c : rusage.h
 t_rusage.c : rusage.h

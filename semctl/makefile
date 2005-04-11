@@ -10,4 +10,3 @@ LARGS_semget := $(SEM_UTIL)/$(LIB)/libsem_util.a -ltimeval -lm
 
 include $(TEMPLATES)/c.mk
 
-

@@ -11,8 +11,6 @@ LARGS_uncircular := -lm
 
 include $(TEMPLATES)/c.mk
 
-$(LIB)/libcircul.a $(LIB)/libcircul.so : $(OBJS_libcircul:%=$(LIB)/%)
-
 cirtail.c : circul.h
 uncircular.c : circul.h
 circul.c : circul.h
