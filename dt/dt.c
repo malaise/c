@@ -1,19 +1,19 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdlib.h>
+#include <libgen.h>
 
-extern long int timezone;
+char prog_name[500];
 
-static char prog_name[500];
 
 static void usage(const char *msg) {
   fprintf (stderr, "%s\n", msg);
-  fprintf (stderr, "Usage : %s <seconds>     |     [dd/mm/yyyy] hh:mm:ss\n", prog_name);
-  fprintf (stderr, "Examples : %s 81365     %s 25/10/1971 10:30:25     dt 12:00:01\n",
-           prog_name, prog_name);
+  fprintf (stderr, "Usage : %s <seconds>   |   [[dd/mm/yyyy] hh:mm:ss]\n", prog_name);
+  fprintf (stderr, "Examples : %s 81365\n           %s 25/10/1971 10:30:25\n           %s 12:00:01\n",
+           prog_name, prog_name, prog_name);
 }
 
 static int to_int(char *str) {
@@ -28,27 +28,47 @@ static int to_int(char *str) {
   return (r);
 }
 
+static void printd (int sec) {
+  struct tm *tm_date_p;
+  /* String of the date printed : year month day hours:min:sec */
+  char printed_date [133];
+
+  tm_date_p = gmtime( (time_t*) &(sec) );
+  if (tm_date_p == (struct tm*)NULL) {
+    perror("gmtime");
+    fprintf (stderr, "Cannot convert %d seconds in date. Abort.\n", sec);
+    exit (1);
+  }
+
+  /* dd/mm/yyyy hh:mm:ss */
+  sprintf (printed_date, "%02d/%02d/%04d %02d:%02d:%02d",
+      tm_date_p->tm_mday, (tm_date_p->tm_mon)+1, (tm_date_p->tm_year)+1900,
+      tm_date_p->tm_hour, tm_date_p->tm_min, tm_date_p->tm_sec);
+
+  printf ("%d secs -> %s GMT\n", sec, printed_date);
+}
 
 int main(int argc, char *argv[]) {
 
+  time_t timeoffset;
   struct timeval time;
 
   /* Struct returned by gmtime */
   struct tm tm_date, *tm_date_p;
-  /* String of the date printed : year month day hours:min:sec */
-  char printed_date [133];
   char buff[50];
   int digits;
   int i, j, k;
 
-  strcpy (prog_name, argv[0]);
+  strcpy (prog_name, basename(argv[0]));
 
   if ((argc == 2)  && (strcmp(argv[1], "-h") == 0) ) {
     usage("");
     exit(0);
   }
 
-  if (argc == 2) {
+  if (argc == 1) {
+    digits = 0;
+  } else if (argc == 2) {
     /* One arg : either secs (digits) or hh:mm:ss */
     digits = 1;
     for (i = 0; i < strlen(argv[1]); i++) {
@@ -65,30 +85,53 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  /* Compute local time offset */
+  if (gettimeofday(&time, (struct timezone *)NULL) == -1) {
+    perror ("gettimeofday");
+    fprintf (stderr, "Cannot get current date and time. Abort.\n");
+    exit (2);
+  }
+  tm_date_p = gmtime ((time_t*) &time.tv_sec);
+  if (tm_date_p == (struct tm*)NULL) {
+    perror("gmtime");
+    fprintf (stderr, "Cannot convert current date. Abort.\n");
+    exit (1);
+  }
+
+  timeoffset = mktime (tm_date_p);
+  if (timeoffset == -1) {
+    perror("mktime");
+    fprintf (stderr, "Cannot convert date 0 to localtime. Abort.\n");
+    exit (1);
+  }
+  timeoffset = time.tv_sec - timeoffset;
+  printf ("Local time offset is %ds\n", (int)timeoffset);
 
   if (digits == 1) {
-
+    /* One arg: tv_secs */
     /* Seconds from 01/01/1979 00:00:00  -->   dd/mm/yyyy hh:mm:ss */
     time.tv_sec = to_int(argv[1]);
     if (time.tv_sec == -1) {
-      fprintf (stderr, "Cannot convert >%s< string in int. Abort\n", argv[1]);
+      fprintf (stderr, "Cannot convert >%s< string in int. Abort.\n", argv[1]);
       usage("SYNTAX ERROR");
       exit (1);
     }
 
-    tm_date_p = gmtime( (time_t*) &(time.tv_sec) );
-    if (tm_date_p == (struct tm*)NULL) {
-      perror("gmtime");
-      fprintf (stderr, "Cannot convert >%s< seconds in date. Abort\n", argv[1]);
-      exit (1);
+    printd (time.tv_sec);
+    /* Done */
+    exit(0);
+  }
+
+  if (argc == 1) {
+    /* No arg -> gettimeofday */
+    if (gettimeofday(&time, (struct timezone *)NULL) == -1) {
+      perror ("gettimeofday");
+      fprintf (stderr, "Cannot get current date and time. Abort.\n");
+      exit (2);
     }
 
-    /* dd/mm/yyyy hh:mm:ss */
-    sprintf (printed_date, "%02d/%02d/%04d %02d:%02d:%02d",
-        tm_date_p->tm_mday, (tm_date_p->tm_mon)+1, (tm_date_p->tm_year)+1900,
-        tm_date_p->tm_hour, tm_date_p->tm_min, tm_date_p->tm_sec);
-
-    printf ("%d secs -> %s\n", (int)time.tv_sec, printed_date);
+    printd (time.tv_sec);
+    /* Done */
     exit(0);
   }
 
@@ -101,7 +144,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  /* Check digits of dd/mm/yyyy if any then hh:mm:ss */
+  /* Check digits of dd/mm/yyyy if any, then check hh:mm:ss */
   if (argc == 3) {
     strcpy (buff, argv[2]);
     if ( (!isdigit(argv[1][0])) || (!isdigit(argv[1][1])) || (argv[1][2] != '/')
@@ -122,25 +165,24 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  /* Set date */
   bzero ((char*)&tm_date, sizeof(struct tm));
 
   if (argc == 2) {
     /* No year month day : get current */
     if (gettimeofday(&time, (struct timezone *)NULL) == -1) {
       perror ("gettimeofday");
-      fprintf (stderr, "Cannot get current date and time. Abort\n");
+      fprintf (stderr, "Cannot get current date and time. Abort.\n");
       exit (2);
     }
 
-    tm_date_p = gmtime( (time_t*) &(time.tv_sec) );
+    tm_date_p = localtime( (time_t*) &(time.tv_sec) );
     if (tm_date_p == (struct tm*)NULL) {
-      perror("gmtime");
-      fprintf (stderr, "Cannot convert current date. Abort\n");
+      perror("localtime");
+      fprintf (stderr, "Cannot convert current date. Abort.\n");
       exit (1);
     }
     bcopy ((char*)tm_date_p, (char*)&tm_date, sizeof(struct tm));
-
-
   } else {
     /* Load tm structure (year month day) from argv[1] */
     strcpy(buff, argv[1]);
@@ -149,8 +191,8 @@ int main(int argc, char *argv[]) {
     i = to_int(&buff[0]);
     j = to_int(&buff[3]);
     k = to_int(&buff[6]);
-    if ( (i == -1) || (j == -1) || (k == -1) || (i == 0) || (i > 31) || (j > 11) || (k < 1970) ) {
-      fprintf (stderr, "Cannot convert >%s< date in date. Abort\n", argv[1]);
+    if ( (i == -1) || (j == -1) || (k == -1) || (i < 0) || (i > 31) || (j < 1) || (j > 12) || (k < 1970) ) {
+      fprintf (stderr, "Cannot convert >%s< date in date. Abort.\n", argv[1]);
       usage("SYNTAX ERROR");
       exit (1);
     }
@@ -159,10 +201,6 @@ int main(int argc, char *argv[]) {
     tm_date.tm_year = k - 1900;
   }
 
-  time.tv_sec=0;
-  tm_date_p = localtime (&time.tv_sec);
-  tm_date.tm_isdst = 0;
-
   /* Load tm structure (hour min sec) from argv */
   if (argc == 2) {
     strcpy (buff, argv[1]);
@@ -170,14 +208,13 @@ int main(int argc, char *argv[]) {
     strcpy (buff, argv[2]);
   }
 
-
   buff[2] = '\0';
   buff[5] = '\0';
   i = to_int(&buff[0]);
   j = to_int(&buff[3]);
   k = to_int(&buff[6]);
   if ( (i == -1) || (j == -1) || (k == -1) || (i > 23) || (j > 59) || (k > 59) ) {
-      fprintf (stderr, "Cannot convert >%s< time in date. Abort\n", buff);
+      fprintf (stderr, "Cannot convert >%s< time in date. Abort.\n", buff);
       usage("SYNTAX ERROR");
       exit (1);
   }
@@ -185,23 +222,21 @@ int main(int argc, char *argv[]) {
   tm_date.tm_min = j;
   tm_date.tm_sec = k;
 
-  /* Compute secs since 01/10/1970 00:00:00 */
-  time.tv_sec = mktime(&tm_date) - timezone;
+  /* Compute secs since 01/10/1970 00:00:00 localtime */
+  tm_date.tm_isdst = 0;
+  time.tv_sec = mktime(&tm_date) + timeoffset;
+
   if (time.tv_sec == (time_t)-1) {
     perror("mktime");
     if (argc == 2) {
-      fprintf (stderr, "Cannot convert >%s< to time. Abort\n", argv[1]);
+      fprintf (stderr, "Cannot convert >%s< to time. Abort.\n", argv[1]);
     } else {
-      fprintf (stderr, "Cannot convert >%s< >%s< to date. Abort\n", argv[1], argv[2]);
+      fprintf (stderr, "Cannot convert >%s< >%s< to date. Abort.\n", argv[1], argv[2]);
     }
     exit (1);
   }
 
-  tm_date_p = &tm_date;
-  sprintf (printed_date, "%02d/%02d/%04d %02d:%02d:%02d",
-    tm_date_p->tm_mday, (tm_date_p->tm_mon)+1, (tm_date_p->tm_year)+1900,
-    tm_date_p->tm_hour, tm_date_p->tm_min, tm_date_p->tm_sec);
-  printf ("%s -> %d secs\n", printed_date, (int)time.tv_sec);
+  printd (time.tv_sec);
 
   exit (0);
 
