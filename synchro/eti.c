@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <sys/time.h>
 #include <signal.h>
@@ -126,7 +127,7 @@ static void decode_and_synchro (void) {
   }
 }
  
-static void sig_handler(int signum) {
+static void sig_handler(int signum __attribute__ ((unused)) ) {
     struct timeval curr_time;
     char *curr_time_str;
 
@@ -224,6 +225,5 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  exit(0);
 }
 

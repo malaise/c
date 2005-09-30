@@ -263,7 +263,7 @@ int cir_write (struct cir_file *fd, char *buffer, unsigned int lg)
 
 	cr = local_fwrite (X.ptc, 1, rest_file, fd->ptf);
 
-	if (cr != rest_file)
+	if ((unsigned int) cr != rest_file)
 	{
 	    return -1;
 	}
@@ -295,7 +295,7 @@ int cir_write (struct cir_file *fd, char *buffer, unsigned int lg)
 
 	cr = local_fwrite (X.ptc, 1, lg, fd->ptf);
 
-	if (cr != lg)
+	if ((unsigned int) cr != lg)
 	{
 	    return -1;
 	}
@@ -314,7 +314,7 @@ static int write_mfb (struct cir_file *fd)
 
     X.ptc = &CIR_EOF;
 
-    if (ftell (fd->ptf) + 1 > fd->size_max)
+    if (ftell (fd->ptf) + 1 > (long)fd->size_max)
     {
 	if (fseek (fd->ptf, 0, SEEK_SET) == -1) {
 	    return -1;

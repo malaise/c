@@ -7,25 +7,20 @@ static char *b0;
 static char *p;
 static int size_handler;
 
-static void sig_handler (int sig_num) {
-
+static void sig_handler (int sig_num __attribute__ ((unused)) ) {
 
   if (p == NULL) {
       size_handler=rand()%1000+1;
       p = malloc (size_handler);
   }
-
 }
-
-
-  
 
 int main(void) {
   int size;
 
   (void) signal (SIGUSR1, sig_handler);
 
-  p=NULL;
+  p = NULL;
 
    for (;;) {
      size = rand() %1000+1;
@@ -46,9 +41,5 @@ int main(void) {
       }
       free (b0);
    }
-   exit(0);
 }
-
-
-     
 

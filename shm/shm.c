@@ -31,6 +31,7 @@
 
 static int shmid1;
 
+static void clean_up (int signum) __attribute__ ((noreturn));
 static void clean_up (int signum) {
     if (shmctl(shmid1, IPC_RMID, NULL) < 0) {
         perror("Removing first shm segment");
@@ -178,5 +179,4 @@ int main(int argc, char *argv[]) {
     }
 
     clean_up(SIGTERM);
-    exit(0);
 }

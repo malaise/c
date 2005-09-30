@@ -1,5 +1,6 @@
 #include "stdio.h"
 #include "stdlib.h"
+#include "string.h"
 
 #define usage(n) { fprintf (stderr, "Usage : fread_float <file_name> <offset_in_bytes> [ <number> ] [ -d ]\n"); \
                    exit (n); }

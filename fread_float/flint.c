@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 #define usage(n) { \
   fprintf (stderr, "Usage : flint <float> [ -d ]\n"); \
@@ -13,7 +15,8 @@ int main (int argc, char *argv[]) {
   double *dp = &d;
   float  *fp = (float*)&d;
   unsigned char *bp = (unsigned char *)&d;
-  int n, i, ii;
+  int n, i;
+  unsigned int u;
 
 
   if (argc == 2) {
@@ -28,8 +31,8 @@ int main (int argc, char *argv[]) {
   } else if ( (argc == 5) || (argc == 9) ) {
     n = argc - 1;
     for (i = 1; i <= n; i++, bp++) {
-      sscanf (argv[i], "%x", &ii);
-      *bp = (unsigned char) ii;
+      sscanf (argv[i], "%x", &u);
+      *bp = (unsigned char) u;
     }
 
   } else {

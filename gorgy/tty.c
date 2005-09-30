@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -23,14 +24,16 @@ static int start;
 static int last;
 
 static void parse (char *arg) {
-int i;
-  last = strlen(arg);
-  if (last > sizeof(tty_spec)-1) {
+
+  int i;
+
+  last = (int)strlen(arg);
+  if (last > (int)sizeof(tty_spec)-1) {
     EXIT;
     exit(1);
   }
   strcpy (tty_spec, arg);
-  for (i=0; i<last; i++) {
+  for (i = 0; i < last; i++) {
     if (tty_spec[i] == ':') {
       tty_spec[i] = '\0';
     }

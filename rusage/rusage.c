@@ -35,7 +35,9 @@ static void signal_rusage (sig)
 int sig;
 #endif
 {
-  dump_rusage_str("Signal");
+  char str [30];
+  sprintf (str, "Signal %d", sig);
+  dump_rusage_str (str);
 }
 
 /* Inititialises the dump_rusage function */

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <strings.h>
 
+static void error(void) __attribute__ ((noreturn));
 static void error(void) {
     fprintf (stderr, "Usage: settime Dd/Mm/YYyy hh:mm:ss [ms]\n");
     exit (1);
@@ -106,6 +107,5 @@ int main (int argc, char *argv[]) {
     perror("settimeofday");
     error();
   }
-  exit(0);
 }
 

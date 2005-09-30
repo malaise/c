@@ -16,6 +16,7 @@ union semun {
   short *array;
 };
 
+static void usage(void) __attribute__ ((noreturn));
 static void usage(void) {
   fprintf (stderr, "Usage : semctl -k key [ semnum ]    or    semctl -i id [ semnum ]\n");
   fprintf (stderr, "   semnum is a number or b or s\n");
@@ -42,6 +43,7 @@ static void print_rights (int rights, int mask_read, int mask_alter) {
 
 int main (int argc, char *argv[]) {
   int i;
+  unsigned int u;
   int semid;
   int semnum, nsemnum, fsemnum;
   int blocked, say;
@@ -61,7 +63,7 @@ int main (int argc, char *argv[]) {
   if ( (argc != 3) && (argc != 4) ) usage();
   if (strlen(argv[1]) >= sizeof(key) ) usage();
   strcpy(key, argv[1]);
-  for (i = 0; i < strlen(key); i++) {
+  for (i = 0; (unsigned)i < strlen(key); i++) {
     key[i] = toupper(key[i]);
   }
 
@@ -77,10 +79,11 @@ int main (int argc, char *argv[]) {
       usage();
     }
     if ( (argv[2][0] == '0') && (argv[2][1] == 'x') ) {
-      if (sscanf (argv[2], "%x", &i) <= 0) {
+      if (sscanf (argv[2], "%x", &u) <= 0) {
         fprintf (stderr, "Bad semkey\n");
         usage();
       }
+      i = (int)u;
     } else {
       fprintf (stderr, "Bad semkey\n");
       usage();

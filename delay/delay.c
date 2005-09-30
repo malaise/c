@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
     exit (1);
   } else {
     for (i = 1; i < argc; i++) {
-      for (j = 0; j < strlen(argv[i]); j++) {
+      for (j = 0; (unsigned int)j < strlen(argv[i]); j++) {
         if (! isdigit((int)argv[i][j])) {
           fprintf (stderr, "Syntax Error. Usage : %s  [secs [msecs]]\n", basename(argv[0]));
           exit (1);

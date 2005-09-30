@@ -21,7 +21,7 @@ static int to_int(char *str) {
 
   r = atoi(str);
   if (r == 0) {
-    for (i = 0; i < strlen(str) ; i ++) {
+    for (i = 0; (unsigned int)i < strlen(str) ; i ++) {
       if (str[i] != '0') return -1;
     }
   }
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
   } else if (argc == 2) {
     /* One arg : either secs (digits) or hh:mm:ss */
     digits = 1;
-    for (i = 0; i < strlen(argv[1]); i++) {
+    for (i = 0; (unsigned int)i < strlen(argv[1]); i++) {
       if (!isdigit(argv[1][i])) {
         /* Not a digit : so this might be hh:mm:ss (check later on) */
         digits = 0;

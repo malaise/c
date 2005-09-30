@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "adjtime_call.h"
 
 int main(void) {

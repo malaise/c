@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "tty.h"
 
@@ -24,7 +25,7 @@ static void print (char oct) {
 }
 
 static void flush (void) {
-  int i;
+  unsigned int i;
 
   for (i = 0; i < index; i++) {
     print (buffer[i]);
@@ -78,6 +79,5 @@ define STANDARD or TAAATS or PALLAS or DACOTA
     prev_prev_oct = prev_oct;
     prev_oct = oct;
   }
-  exit(0);
 }
 

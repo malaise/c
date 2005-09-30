@@ -1,8 +1,13 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "Poing.h"
+
+static void error (const char *s) __attribute__ ((noreturn));
 
 static void error(const char *s);
 
-int main (int argc, char *argv[]) {
+int main (int argc, char *argv[] __attribute__ ((unused)) ) {
     soc_token soc = init_soc;
     int res;
     char buff[BUFF_SIZE];
@@ -48,12 +53,13 @@ int main (int argc, char *argv[]) {
         }
     }
 
-    /* Close socket */
+    /* Close socket
     res = soc_close(&soc);
     if (res != SOC_OK) {
         perror("soc_close");
         error("Closing socket");
     }
+    */
 
 }
 

@@ -12,7 +12,11 @@
 
 /* Random value from 1 to max included */
 static int rnd (int max) {
-    return ((double)rand() / ( (double)RAND_MAX + 1.0) * (double)max) + 1;
+  int i;
+  double d;
+  i = rand();
+  d = (double)i / ( (double)RAND_MAX + 1.0) * (double)max;
+  return (int)d;
 }
 
 int main (int argc, char *argv[]) {
@@ -26,7 +30,7 @@ int main (int argc, char *argv[]) {
   if (argc == 2) {
     seed = atoi (argv[1]);
   }
-  if (seed < 0) seed = 0;
+  if ((int)seed < 0) seed = 0;
   srand (seed);
 
   printf ("%s pid is %d\n", basename(argv[0]), getpid());

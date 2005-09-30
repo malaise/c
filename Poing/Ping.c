@@ -1,6 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "Poing.h"
 
-static void error (const char *s);
+static void error (const char *s) __attribute__ ((noreturn));
 
 int main (int argc, char *argv[]) {
     soc_token soc = init_soc;

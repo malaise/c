@@ -7,6 +7,7 @@
 #define SIZE 8*1024
 char buff[10000000];
 
+static void error (const char *call, int res) __attribute__ ((noreturn));
 static void error (const char *call, int res) {
     perror (call);
     fprintf (stderr, "Error %d\n", res);

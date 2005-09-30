@@ -20,7 +20,7 @@ int main(void) {
     printf ("Running\n");
     delay (&timeout);
   }
-  exit(0);
+  /* exit(0); */
 }
 
 static void sig_handler(int sig) {

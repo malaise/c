@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <locale.h>
 
 #define ALL 1
@@ -25,6 +26,8 @@ static void help (char *str[]) {
         draw (str, ALL, ' ');
 }
 
+static void draw (char *str[], int  count, char param)
+                 __attribute__ ((noreturn));
 static void draw (char *str[], int  count, char param) {
   int j=0, i=0;
 

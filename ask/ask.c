@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 #define ERROR {printf ("ERROR. Usage %s [ -l | -U ] [ <msg> ]\n", argv[0]);\
                exit (1); }

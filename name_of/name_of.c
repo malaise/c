@@ -29,7 +29,7 @@ int main (int argc, char *argv[]) {
   ip_addr = TRUE; 
   ndots = 0;
 
-  for (i = 0; i < strlen(argv[1]); i++) {
+  for (i = 0; i < (int)strlen(argv[1]); i++) {
     if (argv[1][i] == '.') {
       ndots ++;
     } else if (! isdigit(argv[1][i])) {
@@ -46,7 +46,7 @@ int main (int argc, char *argv[]) {
     strcpy (addr, argv[1]);
     p = addr;
     ndots = 0;
-    for (i = 0; i < strlen(argv[1]); i++) {
+    for (i = 0; i < (int)strlen(argv[1]); i++) {
       if (addr[i] == '.') {
         addr[i] = '\0';
         host.bytes[ndots] = atoi(p);

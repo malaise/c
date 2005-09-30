@@ -84,5 +84,5 @@ int main (int argc, char *argv[]) {
       fprintf (stderr, "Error : wrong request received");
     }
   }
-  exit(0);
 }
+

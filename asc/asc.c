@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #define ALL 1
 #define ONE 0
@@ -53,7 +54,5 @@ static void draw (char *str[], int  count, char param) {
 
   printf ("+-----------+-----+-----+-----+\n");
  
-  exit ( 0 );
-
 }
 

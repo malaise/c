@@ -65,6 +65,7 @@ static void usage (void) {
   printf ("or      time_spy -S <udp_port> <client_node>\n");
 }
 
+static void single (void) __attribute__ ((noreturn));
 static void single (void) {
   timeout_t cur_time, exp_time, delta_time;
   int cr;
@@ -94,6 +95,7 @@ static void single (void) {
   }
 }
 
+static void client (char *port_def) __attribute__ ((noreturn));
 static void client (char *port_def) {
   soc_token soc;
   soc_port port_no;
@@ -132,6 +134,8 @@ static void client (char *port_def) {
 
 }
 
+static void server (char *port_def, char *server_node)
+                    __attribute__ ((noreturn));
 static void server (char *port_def, char *server_node) {
   soc_token soc;
   soc_port port_no;

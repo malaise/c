@@ -131,9 +131,8 @@ static void sigchild_handler (int signum) {
   /* Write on pipe */
   for (;;) {
     res = write(write_on_me, &c, 1);
-    if ( (res > 0) || ( (res == -1) && (errno != EINTR) ) ) {
-      break;
-    }
+    if (res > 0) break;
+    if ( (res == -1) && (errno != EINTR) ) break;
   }
   if (debug) {
     trace("Pipe written");
@@ -627,9 +626,8 @@ int main (int argc, char *argv[]) {
       memcpy(&select_mask, &saved_mask, sizeof(fd_set));
       res = select(nfds+1, &select_mask, (fd_set*)NULL, (fd_set*)NULL,
                    (struct timeval*)NULL);
-      if ( (res > 0) || ( (res == -1) && (errno != EINTR) ) ) {
-        break;
-      }
+      if (res > 0) break;
+      if ( (res == -1) && (errno != EINTR) ) break;
     }
     if (res < 0) {
       perror("select");
@@ -645,9 +643,7 @@ int main (int argc, char *argv[]) {
       }
       for (;;) {
         res = read(pipe_fd[0], &c, 1);
-        if ( (res > 0) || ( (res == -1) && (errno != EINTR) ) ) {
-          break;
-        }
+        if (res > 0) break;
       }
       if (res < 0) {
         perror("read");
@@ -665,9 +661,8 @@ int main (int argc, char *argv[]) {
         /* Get a dead pid */
         for (;;) {
           res = waitpid((pid_t)-1, &(report.exit_rep.exit_status), WNOHANG);
-          if ( (res >= 0) || ( (res == -1) && (errno != EINTR) ) ) {
-            break;
-          }
+          if (res >= 0) break;
+          if ( (res == -1) && (errno != EINTR) ) break;
         }
         if ((res == 0) || ( (res == -1) && (errno == ECHILD) ) ) {
           /* No more child */
@@ -872,7 +867,7 @@ int main (int argc, char *argv[]) {
     }
 
     /* Check message */
-    if (request_len < sizeof(request_message.kind)) {
+    if (request_len < (int)sizeof(request_message.kind)) {
       error("Received a message of invalid size", "");
       continue;
     }

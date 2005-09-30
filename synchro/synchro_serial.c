@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
 #include <signal.h>
@@ -30,6 +31,7 @@ static void store (unsigned char oct) {
  * }
  */
 
+static void decode_and_synchro (void) __attribute__ ((noreturn));
 static void decode_and_synchro (void) {
     char        precision;
     struct timeval new_time, curr_time;
@@ -70,7 +72,8 @@ static void decode_and_synchro (void) {
     exit(0);
 }
   
-static void sig_handler(int signum) {
+static void sig_handler(int signum) __attribute__ ((noreturn));
+static void sig_handler(int signum __attribute__ ((unused)) ) {
     fprintf (stderr, "ERROR. No time received\n");
     exit (2);
 }
@@ -109,10 +112,8 @@ int main(int argc, char *argv[]) {
       store (oct);
       if (oct == 0x0d) {
         decode_and_synchro();
-        index = 0;
       }
     }
   }
-  exit(0);
 }
 
