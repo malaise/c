@@ -20,18 +20,18 @@
 
 extern int fd;
 static unsigned char buffer[BUFFER_SIZE];
-static unsigned int index;
+static unsigned int eti_index;
 static boolean verbose;
 static int threshold_msec;
 static boolean frame_expected, frame_received;
 static char prev_precision;
 
 static void store (unsigned char oct) {
-  if (index == BUFFER_SIZE - 1) {
-    index = 0;
+  if (eti_index == BUFFER_SIZE - 1) {
+    eti_index = 0;
   }
-  buffer[index] = oct;
-  index ++;
+  buffer[eti_index] = oct;
+  eti_index ++;
 }
 
 /*
@@ -206,7 +206,7 @@ int main(int argc, char *argv[]) {
   frame_received = false;
   frame_expected = true;
   prev_precision = ' ';
-  index = 0;
+  eti_index = 0;
 
   for(;;) {   
     read_tty (&oct, 1);
@@ -217,7 +217,7 @@ int main(int argc, char *argv[]) {
         /* End of message */
         frame_expected = false;
         decode_and_synchro();
-        index = 0;
+        eti_index = 0;
         if (arm_timer (ITIMER_REAL , 2, 0, 0) == -1) {
           perror ("main Arm_timer");
         }

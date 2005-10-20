@@ -16,6 +16,7 @@ static void handler_sigusr2(int signum);
 
 int main (void) {
 
+  sigset_t mask;
 
 
   printf ("My pid is %d\n", getpid());
@@ -30,7 +31,9 @@ int main (void) {
   printf ("Start timer\n");
   arm_timer (ITIMER_REAL, (long)ALRM_S, (long)ALRM_U, 1);
 
-  sigpause (sigmask(SIGALRM) | sigmask(SIGUSR1));
+  sigaddset (&mask, SIGALRM);
+  sigaddset (&mask, SIGUSR1);
+  sigsuspend (&mask);
   printf ("Done.\n");
   exit(0);
 }

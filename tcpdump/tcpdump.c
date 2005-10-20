@@ -52,7 +52,9 @@ int main (int argc, char *argv[]) {
   int skip_arg;
   int day, prev_hour, hour;
   char pfconfig_cmd_down[50], pfconfig_cmd_up[50], tcpdump_cmd[1024], tcpdump_arg[1024];
+  char pfconfig[80];
 
+  strcpy(pfconfig, PFCONFIG);
 
   if ( (argc != 2) || (strcmp(argv[1], "-a") != 0) ) {
     /* First tcpdump : config interface */
@@ -92,7 +94,7 @@ int main (int argc, char *argv[]) {
       strcpy (interface_name, "tu0");
     }
     
-    strcpy (pfconfig_cmd_up, PFCONFIG);
+    strcpy (pfconfig_cmd_up, pfconfig);
     strcpy (pfconfig_cmd_down, pfconfig_cmd_up);
     strcat (pfconfig_cmd_up, " +p +c ");
     strcat (pfconfig_cmd_down, " -p -c ");
@@ -113,7 +115,7 @@ int main (int argc, char *argv[]) {
     }
 
     /* Do it */
-    if (PFCONFIG != "") {
+    if (pfconfig[0] != '\0') {
       fprintf (stderr, "%s\n", pfconfig_cmd_up);
       system (pfconfig_cmd_up);
     }
@@ -122,7 +124,7 @@ int main (int argc, char *argv[]) {
     fflush(stderr);
     system (tcpdump_cmd);
 
-    if (PFCONFIG != "") {
+    if (pfconfig[0] != '\0') {
       fprintf (stderr, "%s\n", pfconfig_cmd_down);
       system (pfconfig_cmd_down);
     }

@@ -30,7 +30,6 @@ static void parse (char *arg) {
   last = (int)strlen(arg);
   if (last > (int)sizeof(tty_spec)-1) {
     EXIT;
-    exit(1);
   }
   strcpy (tty_spec, arg);
   for (i = 0; i < last; i++) {
