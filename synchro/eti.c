@@ -100,7 +100,7 @@ static void decode_and_synchro (void) {
   /* Compute delta = new_time - current_time */
   (void) memcpy (&curr_delta, &new_time, sizeof(curr_delta));
   (void) sub_time (&curr_delta, &curr_time);
-    
+
   /* Get current adjustment  = current_time - desired_time */
   if (adjtime_call ((struct timeval*)NULL, &curr_adjust) == -1) {
     fprintf (stderr, "At %s, ", curr_time_str);
@@ -126,7 +126,7 @@ static void decode_and_synchro (void) {
     }
   }
 }
- 
+
 static void sig_handler(int signum __attribute__ ((unused)) ) {
     struct timeval curr_time;
     char *curr_time_str;
@@ -150,7 +150,7 @@ static void sig_handler(int signum __attribute__ ((unused)) ) {
     /* For tracing when next message arrives */
     frame_received = false;
 }
- 
+
 
 #define USAGE  "Usage : eti <tty_no>:<stopb>:<datab>:<parity>:<bauds> [ <accuracy_ms> ] [ -v ]"
 
@@ -176,7 +176,7 @@ int main(int argc, char *argv[]) {
     fprintf (stderr, "FATAL syntax error. %s\n", USAGE);
     exit (1);
   }
-    
+
   if (threshold_msec < MIN_THRESHOLD_MSEC) {
     fprintf (stderr, "FATAL invalid threshold error. %s\n", USAGE);
     exit (1);
@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
   prev_precision = ' ';
   eti_index = 0;
 
-  for(;;) {   
+  for(;;) {
     read_tty (&oct, 1);
     if (oct == 0x02) started = true;
     if (started) {

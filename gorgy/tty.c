@@ -72,7 +72,7 @@ void init_tty (char *arg, int read) {
   else if (strcmp(&tty_spec[start], "2") == 0) c_flags = CSTOPB;
   else    EXIT;
 
-  
+
   next (); if (start == -1) EXIT;
   if      (strcmp(&tty_spec[start], "7") == 0) c_flags |= CS7;
   else if (strcmp(&tty_spec[start], "8") == 0) c_flags |= CS8;

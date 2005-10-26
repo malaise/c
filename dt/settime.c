@@ -63,7 +63,7 @@ int main (int argc, char *argv[]) {
   if (p == NULL) error();
   *p = '\0';
   if (strlen(pp) != 2) error();
-  tms.tm_hour = atoi(pp); 
+  tms.tm_hour = atoi(pp);
   if ( (tms.tm_hour < 0) || (tms.tm_hour > 23) ) error();
 
   pp = p + 1;
@@ -71,14 +71,14 @@ int main (int argc, char *argv[]) {
   if (p == NULL) error();
   *p = '\0';
   if (strlen(pp) != 2) error();
-  tms.tm_min = atoi(pp); 
+  tms.tm_min = atoi(pp);
   if ( (tms.tm_min < 0) || (tms.tm_min > 59) ) error();
 
   pp = p + 1;
   p = strchr(pp, ':');
   if (p != NULL) error();
   if (strlen(pp) != 2) error();
-  tms.tm_sec = atoi(pp); 
+  tms.tm_sec = atoi(pp);
   if ( (tms.tm_sec < 0) || (tms.tm_sec > 59) ) error();
 
   /* Make tv_secs */

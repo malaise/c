@@ -37,7 +37,7 @@ void init_udp (char *port_name_no) {
   } else {
     cr = soc_set_dest_name_service  (soc, lan_name, true, port_name_no);
   }
-  
+
   if (cr != SOC_OK) {
     perror ("setting detination");
     exit (2);

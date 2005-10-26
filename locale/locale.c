@@ -36,9 +36,9 @@ static void draw (char *str[], int  count, char param) {
   printf ("+-----------+-----+-----+-----+\n");
 
   if ( param == ONE )
-  { 
+  {
      for ( j = 1; j < count; )
-     { 
+     {
         i = 0;
         while ( str[j][i] != '\0' )
         {
@@ -58,7 +58,7 @@ static void draw (char *str[], int  count, char param) {
   }
 
   printf ("+-----------+-----+-----+-----+\n");
- 
+
   exit ( 0 );
 
 }

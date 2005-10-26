@@ -1,13 +1,13 @@
 /*
  * Program name: shm.c
  *
- * This program tries to find valid  shared memory addresses to which 
- * shared memory segments may be attached. 
+ * This program tries to find valid  shared memory addresses to which
+ * shared memory segments may be attached.
  * It creates two shared memory segments first and attaches them to
  * the process' virtual memory space. The system determines the shared
  * memory addresses for these segments.
  * Then the program determines the address interval between the two
- * segments. The whole virtual address space is then scanned for valid 
+ * segments. The whole virtual address space is then scanned for valid
  * shared memory addresses with the interval. Scanning may
  * take several minutes.
  *
@@ -16,7 +16,7 @@
  *
  * This program has an optional command line option : size for a first
  *  shared memory segment to attach to.
- */ 
+ */
 
 #include <stdio.h>
 #include <sys/types.h>

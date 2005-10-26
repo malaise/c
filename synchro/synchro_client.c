@@ -57,7 +57,7 @@ int main (int argc, char *argv[]) {
   }
   accuracy_timeout.tv_sec = accuracy_ms / 1000;
   accuracy_timeout.tv_usec = (accuracy_ms % 1000) * 1000;
-    
+
 
   if (soc_get_lan_name(lan_name, sizeof(lan_name)) != SOC_OK) {
     perror ("getting lan name");
@@ -68,7 +68,7 @@ int main (int argc, char *argv[]) {
     perror ("opening socket");
     exit (1);
   }
- 
+
   port_no = atoi(argv[1]);
   if (port_no <= 0) {
     if (soc_set_dest_name_service(soc, lan_name, true, argv[1]) != SOC_OK) {
@@ -156,7 +156,7 @@ int main (int argc, char *argv[]) {
           (void) sub_time (&reply_time, &synchro_msg.server_time);
           printf ("Synchro %d.%06d s\n", (int)reply_time.tv_sec,
                                          (int)reply_time.tv_usec);
-  
+
           if (settimeofday (&synchro_msg.server_time, NULL) < 0) {
              perror ("settimeofday");
              exit (1);
@@ -165,7 +165,7 @@ int main (int argc, char *argv[]) {
         } else {
           fprintf (stderr, "Error : wrong reply received");
         }
- 
+
       } else if (cr != SOC_OK) {
         perror ("receiving reply");
       } else {
@@ -178,5 +178,5 @@ int main (int argc, char *argv[]) {
       perror ("linking socket");
       exit (1);
     }
-  }    
+  }
 }

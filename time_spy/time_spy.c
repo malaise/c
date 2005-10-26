@@ -25,7 +25,7 @@ static void print_time (timeout_t *p_time) {
   msg[ 0] = week_day[date_struct->tm_wday][0];
   msg[ 1] = week_day[date_struct->tm_wday][1];
   msg[ 2] = week_day[date_struct->tm_wday][2];
- 
+
   msg[ 3] = ' ';
 
   /* msg[4..5] <- jj */
@@ -47,16 +47,16 @@ static void print_time (timeout_t *p_time) {
 
   /* msg[14..21] <- hh:mm:ss */
   strncpy (&(msg[14]), &(date_str[11]), 8);
-  
+
   /* msg 22..28 <- .millisecs */
   msg[22] = '.';
   sprintf (&msg[23], "%06d", (int)p_time->tv_usec);
 
   msg[29] = '\0';
-  
+
   printf ("%s\n", msg);
   fflush (stdout);
-  
+
 }
 
 static void usage (void) {
@@ -71,11 +71,11 @@ static void single (void) {
   int cr;
 
   get_time (&cur_time);
-  
+
   exp_time.tv_sec = cur_time.tv_sec + 1;
   exp_time.tv_usec = 0;
 
-  
+
   for (;;) {
 
 
@@ -127,7 +127,7 @@ static void client (char *port_def) {
     length = sizeof(message);
     if (soc_receive(soc, message, length, TRUE) <= 0) {
       perror ("receiving from socket\n");
-    } 
+    }
     get_time (&cur_time);
     print_time (&cur_time);
   }
@@ -168,11 +168,11 @@ static void server (char *port_def, char *server_node) {
 
 
   get_time (&cur_time);
-  
+
   exp_time.tv_sec = cur_time.tv_sec + 1;
   exp_time.tv_usec = 0;
 
-  
+
   for (;;) {
 
 
@@ -191,7 +191,7 @@ static void server (char *port_def, char *server_node) {
 
     if (soc_send(soc, message, length) != SOC_OK) {
       perror ("sending to socket\n");
-    } 
+    }
   }
 
 
@@ -199,7 +199,7 @@ static void server (char *port_def, char *server_node) {
 
 
 int main (int argc, char *argv[]) {
- 
+
   if (argc == 1) {
     single();
   } else if ((argc == 3) && (strcmp(argv[1], "-C") == 0) ) {

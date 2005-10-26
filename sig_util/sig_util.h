@@ -13,7 +13,7 @@
 /* SIG_DFL and SIG_IGN can be used for default or ignore handlers */
 /* Old_handler may be NULL if of no interest */
 
-t_result set_handler (int sig_num, void (*sig_handler)(int signum), 
+t_result set_handler (int sig_num, void (*sig_handler)(int signum),
                       void (**old_handler)(int signum) );
 
 /* To arm one or disarm of the 3 timers. */

@@ -26,7 +26,7 @@ int main (int argc, char *argv[]) {
     exit(2);
   }
 
-  ip_addr = TRUE; 
+  ip_addr = TRUE;
   ndots = 0;
 
   for (i = 0; i < (int)strlen(argv[1]); i++) {
@@ -36,7 +36,7 @@ int main (int argc, char *argv[]) {
       ip_addr = FALSE;
     }
   }
-  
+
   if (ip_addr && (ndots != 3)) {
     usage();
   }

@@ -25,11 +25,11 @@ static void cat_str (char *to, char *str) {
   strcpy (to, str);
   while (*to != '\0') to++;
   *(to+1) = '\0';
-} 
+}
 
 
 int main(int argc, char *argv[]) {
- 
+
   command_number number;
   boolean udp_mode;
   soc_token soc = NULL;
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
       request.start_req.number = number;
       number += 1;
       printf ("Command ? ");
-      i = get_line (NULL, request.start_req.command_text, 
+      i = get_line (NULL, request.start_req.command_text,
                   sizeof(request.start_req.command_text));
       for (;;) {
         printf ("Argument (Empty to end) ? ");
@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
       if (soc_send(soc, (char*)&request, sizeof(request)) != SOC_OK) {
         perror("soc_send");
       }
-      
+
     } else if (strcmp(buff, "e") == 0) {
       /* Exit */
       request.kind = fexit_command;

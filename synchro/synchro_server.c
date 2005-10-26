@@ -40,7 +40,7 @@ int main (int argc, char *argv[]) {
     perror ("opening socket");
     exit (2);
   }
- 
+
   port_no = atoi(argv[1]);
   if (port_no <= 0) {
     if (soc_link_service(soc, argv[1]) != SOC_OK) {
@@ -68,7 +68,7 @@ int main (int argc, char *argv[]) {
   for (;;) {
     length = sizeof (synchro_msg);
     cr = soc_receive (soc, (soc_message) &synchro_msg, length, FALSE);
-    if ( (cr == sizeof (synchro_msg)) 
+    if ( (cr == sizeof (synchro_msg))
       && (synchro_msg.magic_number == magic_request_value) ) {
 
       synchro_msg.magic_number = magic_reply_value;

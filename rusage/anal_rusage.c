@@ -12,9 +12,9 @@
 
 /* Computes the difference between 2 times : td = t2 - t1 */
 #ifdef __STDC__
-static void delta (struct timeval *t1, struct timeval *t2, struct timeval *td) 
+static void delta (struct timeval *t1, struct timeval *t2, struct timeval *td)
 #else
-static void delta (t1, t2, td) 
+static void delta (t1, t2, td)
   struct timeval *t1, *t2, *td;
 #endif
 {
@@ -29,9 +29,9 @@ static void delta (t1, t2, td)
 
 /* Computes the sum of 2 times : ts = t1 + t2 */
 #ifdef __STDC__
-static void sum (struct timeval *t1, struct timeval *t2, struct timeval *ts) 
+static void sum (struct timeval *t1, struct timeval *t2, struct timeval *ts)
 #else
-static void sum (t1, t2, ts) 
+static void sum (t1, t2, ts)
   struct timeval *t1, *t2, *ts;
 #endif
 {
@@ -46,7 +46,7 @@ static void sum (t1, t2, ts)
 
 /* Converts a time in a float */
 #ifdef __STDC__
-static float to_float (struct timeval *time_ptr)   
+static float to_float (struct timeval *time_ptr)
 #else
 static float to_float (time_ptr)
    struct timeval *time_ptr;
@@ -142,7 +142,7 @@ char *argv[];
     /* Total CPU consumption */
     sum (&block.usage.ru_utime, &block.usage.ru_stime, &sum_time);
     total_cpu = to_float (&sum_time);
-    
+
     /* Memory sizes */
     if (block.pr_size != -1) {
       (void) printf ("Virtual size            (8K page) %9ld", block.pr_size);
@@ -259,7 +259,7 @@ char *argv[];
       (void) printf ("  delta %11.6f s  percentage %10.6f %%",  val_delta2, val_percent2);
     }
     (void) printf ("\n");
-    
+
     /* Total CPU time */
     (void) printf ("                           ------------------");
     if ( i != 1 ) {

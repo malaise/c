@@ -23,7 +23,7 @@
 	echo Testing for needed CFLAGS ...
 	echo "main(){char c; c=0;}" > test.c
 	if ${CC=cc} ${1+"$@"} -o enquire test.c $LIBS
-	then : 
+	then :
 	else
 	    echo '*** "'$CC ${1+"$@"} -o enquire test.c $LIBS'" failed'
 	    echo '*** Giving up'

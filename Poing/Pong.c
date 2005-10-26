@@ -22,9 +22,9 @@ int main (int argc, char *argv[] __attribute__ ((unused)) ) {
         perror("soc_open");
         error("Socket creation");
     }
-   
+
     /* Connect to port */
-    res = soc_link_service (soc, PORT_NAME); 
+    res = soc_link_service (soc, PORT_NAME);
     if (res != SOC_OK) {
         perror("soc_link_service");
         error("Connecting to port");

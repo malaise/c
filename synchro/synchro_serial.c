@@ -35,7 +35,7 @@ static void decode_and_synchro (void) __attribute__ ((noreturn));
 static void decode_and_synchro (void) {
     char        precision;
     struct timeval new_time, curr_time;
-    
+
     /* Cancel timer */
     (void) arm_timer (ITIMER_REAL , 0, 0, 0);
 
@@ -71,7 +71,7 @@ static void decode_and_synchro (void) {
     printf ("Synchro %d.%06d s\n", (int)new_time.tv_sec, (int)new_time.tv_usec);
     exit(0);
 }
-  
+
 static void sig_handler(int signum) __attribute__ ((noreturn));
 static void sig_handler(int signum __attribute__ ((unused)) ) {
     fprintf (stderr, "ERROR. No time received\n");
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
   started = 0;
   index = 0;
 
-  for(;;) {   
+  for(;;) {
     read_tty (&oct, 1);
     if (oct == 0x02) started = 1;
     if (started) {

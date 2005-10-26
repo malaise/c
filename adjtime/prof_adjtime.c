@@ -16,7 +16,7 @@ int main(void) {
     printed_delta = t2.tv_sec + (float) t2.tv_usec / 1000000.0;
     printf ("remaining (%3.06f)\n", printed_delta);
   }
-    
+
 
   for (i = -10; i <= 0; i++) {
     t1.tv_sec = i;
@@ -27,5 +27,5 @@ int main(void) {
     printed_delta = t2.tv_sec + (float) t2.tv_usec / 1000000.0;
     printf ("remaining (%3.06f)\n", printed_delta);
   }
-  exit(0);    
+  exit(0);
 }

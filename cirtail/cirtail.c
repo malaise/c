@@ -11,7 +11,7 @@
 #include <sys/time.h>
 
 #include "circul.h"
-  
+
 #define DEFAULT_DELAY_MS 1000
 
 #define BUFFER_SIZE 512
@@ -42,12 +42,12 @@ int offset;
                 circular_file_name = argv[3];
             }
         }
-    } 
+    }
 
     if (circular_file_name == NULL) {
         fprintf (stderr, "Syntax error. Syntax %s [ -i <delay_ms> ] <circular_file_name>\n", argv[0]);
         exit (1);
-    } 
+    }
 
     /* Open linear file */
     circul_file = fopen(circular_file_name, "r");
@@ -55,8 +55,8 @@ int offset;
         perror ("fopen");
         fprintf(stderr, "Cannot open the circular file %s\n", circular_file_name);
         exit (1);
-    } 
-  
+    }
+
     /* Locate mark */
     /* Look first end of file */
     (void) fseek(circul_file, -1, SEEK_END);
@@ -100,8 +100,8 @@ int offset;
         (void) fseek(circul_file, -BUFFER_SIZE, SEEK_CUR);
     }
 
-    for (;;) { 
-        c = getc(circul_file);  
+    for (;;) {
+        c = getc(circul_file);
 
         if ( (c != CIR_EOF) && (c != EOF) ) {
             /* Normal behaviour */
@@ -126,7 +126,7 @@ int offset;
                 perror ("fopen");
                 fprintf(stderr, "Cannot re-open the circular file %s\n", circular_file_name);
                 break;
-            } 
+            }
             (void) fseek(circul_file, last_pos, SEEK_SET);
         }
     }

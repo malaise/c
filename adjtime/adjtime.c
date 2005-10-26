@@ -6,7 +6,7 @@
 int main(int argc, char *argv[]) {
 
   struct timeval delta, old_delta, *p_delta;
-  
+
   float printed_delta;
 
   if (argc > 2) {

@@ -28,7 +28,7 @@
 /*  defines.                                                    */
 /* STANDARD:                                                    */
 /* ---------                                                    */
-/* The standard frame has the following format (24 characters)  */ 
+/* The standard frame has the following format (24 characters)  */
 /* <STX>NNN DD/MM/YY  hh:mm:ss<CR>                              */
 /* where <STX>    is ASCII 2                                    */
 /*       NNN      is the day name in 3 uppercase letters        */
@@ -110,7 +110,7 @@ static void sig_handler (int signum) {
   printf ("New precision -> '%c'\n", precision);
 }
 #endif
-  
+
 
 #define MAX_MSG_LEN 132
 static char msg[MAX_MSG_LEN];
@@ -144,7 +144,7 @@ static void format_time (timeout_t *p_time) {
   mn[2] = NUL;
   strncpy (ss, &date_str[17], 2);
   ss[2] = NUL;
-  
+
 #if defined(STANDARD)
   sprintf (msg, "%1c%3s %2s/%2s/%2s  %2s:%2s:%2s%1c", STX, nnn, dd, mm, yy, hh, mn, ss, CR);
   msg_len = 24;
@@ -223,11 +223,11 @@ int main (int argc, char *argv[]) {
 #endif
 
   get_time (&cur_time);
-  
+
   exp_time.tv_sec = cur_time.tv_sec + 1;
   exp_time. tv_usec = 0;
 
-  
+
   for (;;) {
     format_time (&exp_time);
 

@@ -156,7 +156,7 @@ int main(int argc, char *argv[]) {
     }
   } else {
     strcpy (buff, argv[1]);
-  } 
+  }
 
   if ( (!isdigit(buff[0])) || (!isdigit(buff[1])) || (buff[2] != ':')
     || (!isdigit(buff[3])) || (!isdigit(buff[4])) || (buff[5] != ':')

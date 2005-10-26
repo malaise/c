@@ -93,7 +93,7 @@ int main (int argc, char *argv[]) {
     if (interface_name[0] == '\0') {
       strcpy (interface_name, "tu0");
     }
-    
+
     strcpy (pfconfig_cmd_up, pfconfig);
     strcpy (pfconfig_cmd_down, pfconfig_cmd_up);
     strcat (pfconfig_cmd_up, " +p +c ");
@@ -199,7 +199,7 @@ int main (int argc, char *argv[]) {
           }
         }
 
-        (void) putchar(LF);       
+        (void) putchar(LF);
       } else {
         /* Line does not start with space, copy it */
         i = 0;
@@ -218,7 +218,7 @@ int main (int argc, char *argv[]) {
         printf ("%02d-%s\n", day, buffer);
       }
     }
-    (void) putchar(LF);       
+    (void) putchar(LF);
 
   }
   exit(0);

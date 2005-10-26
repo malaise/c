@@ -23,7 +23,7 @@ t_result set_handler (int sig_num, void (*sig_handler)(int signum),
 
   if ( (int)loc_old_handler != -1) {
     return (OK);
-  } else {  
+  } else {
     perror ("set_handler.signal");
     return (ERR);
   }
@@ -51,7 +51,7 @@ static int normal (t_time *p_sec, t_time *p_usec) {
   } else {
     return (-1);
   }
-} 
+}
 
 
 t_result arm_timer (int timer, t_time sec, t_time usec, int repeat) {
@@ -78,7 +78,7 @@ t_result arm_timer (int timer, t_time sec, t_time usec, int repeat) {
     val.it_interval.tv_sec  = 0;
     val.it_interval.tv_usec = 0;
   }
-    
+
 
   if (setitimer (timer, &val, NULL) == -1) {
     perror ("arm.setitimer");

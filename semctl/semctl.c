@@ -74,7 +74,7 @@ int main (int argc, char *argv[]) {
   i = 0;
   i = atoi(argv[2]);
   if ( (i == 0) && (strcmp (argv[2], "0") != 0 ) ) {
-    if (strcmp (key, "-I") == 0) { 
+    if (strcmp (key, "-I") == 0) {
       fprintf (stderr, "Bad semid\n");
       usage();
     }
@@ -90,7 +90,7 @@ int main (int argc, char *argv[]) {
     }
   }
 
-  if (strcmp (key, "-K") == 0) { 
+  if (strcmp (key, "-K") == 0) {
     if (i == 0) {
       fprintf (stderr, "Bad semkey\n");
       usage();
@@ -154,10 +154,10 @@ int main (int argc, char *argv[]) {
     say = 1;
     printf ("No %d of ", nsemnum);
   }
-  
+
   if (say) {
   printf ("Semaphore ");
-    if (strcmp (key, "-K") == 0) { 
+    if (strcmp (key, "-K") == 0) {
       printf ("Key %d id %d, ", i, semid);
     } else {
       printf ("Id %d, ", semid);
@@ -220,7 +220,7 @@ int main (int argc, char *argv[]) {
       printf ("| %3d | ", semnum);
       printf ("%3d | ", val);
       printf ("%7d | ", pid);
-  
+
       date = ctime (&(arg.buf->sem_otime));
       (void) strncpy (&(printed_date[0]), &(date[20]), 4);
       printed_date[4] = ' ';

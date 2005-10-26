@@ -9,7 +9,7 @@
 #include <errno.h>
 
 #include "circul.h"
-  
+
 
 #define INTERNAL_BUFFER_SIZE  512
 char buffer[INTERNAL_BUFFER_SIZE];
@@ -29,11 +29,11 @@ struct cir_file *circul_fd = NULL;
   if (circul_fd == NULL) {
     fprintf(stderr, "Cannot open the circular file %s\n", input_file_name);
     return (1);
-  } 
-  
-  do { 
+  }
+
+  do {
     char_read = 0;
-    char_read = cir_read(circul_fd, buffer, INTERNAL_BUFFER_SIZE);  
+    char_read = cir_read(circul_fd, buffer, INTERNAL_BUFFER_SIZE);
     if (char_read == -1) {
       fprintf(stderr, "Cannot read on circular file %s\n", input_file_name);
       return (1);
@@ -45,7 +45,7 @@ struct cir_file *circul_fd = NULL;
       return (1);
     }
   } while ( (char_read != 0) && (char_read != -1));
-  
+
   strcpy (buffer, "End of circular file\n");
   char_read = strlen(buffer);
   if (write(output_fd, buffer, char_read) != char_read) {
@@ -79,7 +79,7 @@ int i;
     fprintf(stderr, "Cannot create the linear file %s (errno = %d)", output_file_name, errno);
     exit (1);
   }
-  
+
   /* Loop on each argument */
   result = 0;
   for (i = 1; i < argc; i++) {

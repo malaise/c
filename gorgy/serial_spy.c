@@ -34,7 +34,7 @@ static void flush (void) {
   fflush(stdout);
   index = 0;
 }
-  
+
 
 int main(int argc, char *argv[]) {
   unsigned char oct, prev_oct, prev_prev_oct;
@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   prev_prev_oct = '0';
   index = 0;
 
-  for(;;) {   
+  for(;;) {
     read_tty (&oct, 1);
 #if defined(STANDARD) || defined(TAAATS)
     if (oct == 0x02) started = 1;

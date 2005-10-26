@@ -17,7 +17,7 @@ int main (void) {
   printf ("My pid is %d\n", getpid());
 
   id = get_sem_id (KEY);
-  
+
   if (id != ERR) {
     printf ("Sem %d got, id %d\n", KEY, id);
     wait = 0;
@@ -31,7 +31,7 @@ int main (void) {
     }
     wait = 1;
   }
- 
+
   if (decr_sem_id(id, FALSE) != OK) {
     printf ("Sem %d id %d decrementation failure. Errno %d\n", KEY, id, errno);
   }

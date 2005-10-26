@@ -29,9 +29,9 @@ static int my_fd = -1;
 
 #ifdef __STDC__
 /*ARGSUSED*/
-static void signal_rusage (int sig) 
+static void signal_rusage (int sig)
 #else
-static void signal_rusage (sig) 
+static void signal_rusage (sig)
 int sig;
 #endif
 {
@@ -43,9 +43,9 @@ int sig;
 /* Inititialises the dump_rusage function */
 /* Returns : RUSAGE_OK if success; RUSAGE_ERROR otherwise */
 #ifdef __STDC__
-int init_rusage(void) 
+int init_rusage(void)
 #else
-int init_rusage() 
+int init_rusage()
 #endif /* __STDC__ */
 {
 
@@ -59,16 +59,16 @@ int init_rusage()
 }
 
 #ifdef __STDC__
-static int open_file(void) 
+static int open_file(void)
 #else
-static int open_file() 
+static int open_file()
 #endif /* __STDC__ */
 {
   /* Pid image on 5 digits */
   pid_t my_pid;
 
   char hostname[MAXHOSTNAMELEN];
-  char file_name [255]; 
+  char file_name [255];
 
   if (rusage_installed != 0) return rusage_installed;
 
@@ -79,7 +79,7 @@ static int open_file()
   /* Open /proc/<pid> */
   {
     char proc_name[255];
-    sprintf (proc_name, "/proc/%05d", my_pid);  
+    sprintf (proc_name, "/proc/%05d", my_pid);
     my_fd = open(proc_name, O_RDONLY, 0);
   }
 #endif

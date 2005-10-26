@@ -127,7 +127,7 @@ static void sigchild_handler (int signum) {
   if (debug) {
     trace("Caught sigchild");
   }
-  
+
   /* Write on pipe */
   for (;;) {
     res = write(write_on_me, &c, 1);
@@ -148,7 +148,7 @@ static boolean has_1_nul (char *str, int len) {
     }
   }
   return FALSE;
-} 
+}
 
 /* Check there are two successive terminators ("\0\0") in string */
 static boolean has_2_nuls (char *str, int len) {
@@ -163,7 +163,7 @@ static boolean has_2_nuls (char *str, int len) {
     p = str[i];
   }
   return FALSE;
-} 
+}
 
 /* Fork and launch a command, return forked pid or -1 */
 static int do_start_command (start_request_t *request,
@@ -264,7 +264,7 @@ static int do_start_command (start_request_t *request,
     }
   }
 
-  /* Set environnement variables */ 
+  /* Set environnement variables */
   start = request->environ_variables;
   while (*start != '\0') {
     if(putenv(start) != 0) {
@@ -383,12 +383,12 @@ static int do_start_command (start_request_t *request,
     flush ();
   }
 
-  /* Now the exec */    
+  /* Now the exec */
   if (execv(request->command_text, args) == -1) {
     perror("execv");
     error("Cannot exec command: ", request->command_text);
     exit(FATAL_ERROR_EXIT_CODE);
-  } 
+  }
 
   /* Never reached */
   exit(FATAL_ERROR_EXIT_CODE);
@@ -608,7 +608,7 @@ int main (int argc, char *argv[]) {
     fatal("Cannot clear environment", "");
     exit (FATAL_ERROR_EXIT_CODE);
   }
- 
+
 
   /* Ready */
   fprintf(stderr, "%s %s ready. %s\n", date_str(), PROG_NAME, (debug ? "Debug on." : ""));
@@ -781,7 +781,7 @@ int main (int argc, char *argv[]) {
       } else {
         last_cli_cell = cur_cli_cell;
       }
- 
+
       /* Add to mask */
       FD_SET(client_fd, &saved_mask);
       if (client_fd > nfds) nfds = client_fd;
@@ -790,9 +790,9 @@ int main (int argc, char *argv[]) {
       }
       continue;
 
-    } 
+    }
 
-    /* Get client socket */ 
+    /* Get client socket */
     client_soc = init_soc;
     if (udp_mode) {
       if (FD_ISSET(service_fd, &select_mask)) {
@@ -824,7 +824,7 @@ int main (int argc, char *argv[]) {
       continue;
     }
 
- 
+
     /* A request */
     if (debug) {
       trace ("Data on socket");
@@ -840,7 +840,7 @@ int main (int argc, char *argv[]) {
       if (debug) {
         trace ("Disconnection of client on fd %d", client_fd);
       }
-      
+
       FD_CLR(client_fd, &saved_mask);
       soc_close (&client_soc);
 
@@ -986,9 +986,9 @@ int main (int argc, char *argv[]) {
       }
       exit(request_message.fexit_req.exit_code);
     }
-        
+
 
   } /* Main loop */
-  
+
 }
 

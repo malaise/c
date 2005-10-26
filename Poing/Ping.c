@@ -31,7 +31,7 @@ int main (int argc, char *argv[]) {
         perror("soc_open");
         error("Socket creation");
     }
-   
+
     /* Set destination */
     res = soc_set_dest_name_service(soc, argv[2], ping_lan, PORT_NAME);
     if (res != SOC_OK) {
@@ -40,7 +40,7 @@ int main (int argc, char *argv[]) {
     }
 
     /* Connect to port */
-    res = soc_link_service (soc, PORT_NAME); 
+    res = soc_link_service (soc, PORT_NAME);
     if (res != SOC_OK) {
         perror("soc_link_service");
         error("Connecting to port");

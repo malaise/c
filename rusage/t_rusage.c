@@ -12,7 +12,7 @@ int main (void) {
     fprintf (stderr, "Cannot init rusage\n");
     exit (1);
   }
-      
+
 
   for (;;)  {
      dump_rusage_str ("Call");

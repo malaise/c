@@ -14,13 +14,13 @@ typedef enum { READ, WRITE, WRITE_APPEND }	TYPE_FILE_CIRCULAR;
 typedef enum { IS_FOUND, IS_NOT_FOUND }		MARK_FOUND;
 typedef MARK_FOUND				END_FOUND;
 
-struct cir_file 
+struct cir_file
 {
     FILE          *ptf;		/* File descriptor of circular file */
     unsigned int  size_max;	/* size (octet) of this file   */
     TYPE_FILE_CIRCULAR mode;	/* open mode */
-    MARK_FOUND    mark;		/* CIR_EOF already search */ 
-    END_FOUND     end;		/* CIR_EOF already found */ 
+    MARK_FOUND    mark;		/* CIR_EOF already search */
+    END_FOUND     end;		/* CIR_EOF already found */
 };
 
 
@@ -40,7 +40,7 @@ int cir_close (struct cir_file *fd)
     fd->mark= IS_NOT_FOUND;
     fd->end = IS_NOT_FOUND;
     cr = fclose (fd->ptf);
-    
+
     free(fd);
     return (cr == EOF ? -1 : 0);
 }
@@ -71,33 +71,33 @@ int cir_gets (struct cir_file *fd, char *buffer,  unsigned int lg)
     }
 
     X.ptc = buffer;
-  
+
     /* Reads characters from fd into buffer, until either a newline character
      * is read, byte_count - 1 characters have been read, or CIR_EOF
-     * is seen.  
+     * is seen.
      * Finishes by appending a null character and returning buffer.
      * If CIR_EOF is seen before any characters have been written,
      * the function returns -1 without appending the null character.
-     * If there is a file error, always return -1.  
+     * If there is a file error, always return -1.
      */
 
     while (--lg > 0 && (c = getc(fd->ptf)) != CIR_EOF)
 	if (c == EOF) {
 	    if ( fseek (fd->ptf, 0, SEEK_SET)== -1 ) return -1;
-	    lg++; 
-	} 
+	    lg++;
+	}
 	else
 	    if ((*(X.ptc)++ = c) == '\n')
 		break;
 
     *(X.ptc) = '\0';
-    
+
     if (c == CIR_EOF) {
 	fd->end = IS_FOUND;
 	return 0;
     }
 
-    return strlen(buffer); 
+    return strlen(buffer);
 }
 
 /******************************************************************************/
@@ -109,14 +109,14 @@ struct cir_file* cir_open(const char *path, const char *mode, unsigned int lg)
     char     file_mode[3];
 
     if (!mode) return NULL;
-    
+
     switch (tolower(mode[0])) {
     case 'r':	strcpy(file_mode, "r");  m = READ;  break;
     case 'w':	strcpy(file_mode, "w+"); m = WRITE; break;
     default:	return NULL;
     }
 
-    if ( (fp = fopen(path, file_mode)) == NULL) 
+    if ( (fp = fopen(path, file_mode)) == NULL)
 	return NULL;
 
     cir_fp = calloc(1, sizeof(struct cir_file));
@@ -174,7 +174,7 @@ int cir_read (struct cir_file *fd, char* buffer, unsigned int size)
 
     if (fd->mark == IS_NOT_FOUND)
     {				/* la marque n'a pas ete trouvee */
-	if ( (lu = recherche_marque(fd)) == 0) 
+	if ( (lu = recherche_marque(fd)) == 0)
 	    return -1;
     }
 
@@ -278,17 +278,17 @@ int cir_write (struct cir_file *fd, char *buffer, unsigned int lg)
     }
     else
     {				/* position + lg+1 <= fd->size_max */
-	if (fseek (fd->ptf, position + lg, SEEK_SET) == -1) 
+	if (fseek (fd->ptf, position + lg, SEEK_SET) == -1)
 	{
 	    return -1;
 	}
 
-	if (write_mfb (fd) == -1) 
+	if (write_mfb (fd) == -1)
 	{
 	    return -1;
 	}
 
-	if (fseek (fd->ptf, position, SEEK_SET) == -1) 
+	if (fseek (fd->ptf, position, SEEK_SET) == -1)
 	{
 	    return -1;
 	}
@@ -321,9 +321,9 @@ static int write_mfb (struct cir_file *fd)
 	}
     }
     do {
-	cr=fwrite (X.ptv, 1, 1, fd->ptf); 
+	cr=fwrite (X.ptv, 1, 1, fd->ptf);
     } while ( (cr== -1) &&(errno==EINTR));
-    
+
     if ( cr !=  1 ) {
 	return -1;
     }
@@ -354,7 +354,7 @@ static int local_fwrite (char *buff ,int size ,unsigned int lg ,FILE *fd )
 	do {
 	    cr = fwrite (X.ptv, (size_t)size, (size_t)lg_to_write, fd);
 	} while ( (cr== -1) &&(errno==EINTR));
-	if ( cr == -1 ) return (-1); 
+	if ( cr == -1 ) return (-1);
 	lg_to_write -= cr ;
 	lg_written  += cr ;
 

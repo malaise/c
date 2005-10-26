@@ -13,7 +13,7 @@
 
 int main (int argc, char *argv[]) {
     boolean ping_lan;
-    soc_port port_no; 
+    soc_port port_no;
     soc_token soc = init_soc;
     int res;
     char buff [500];
@@ -37,7 +37,7 @@ int main (int argc, char *argv[]) {
         perror("soc_open");
         error("Socket creation");
     }
-   
+
     /* Set destination */
     port_no = (soc_port) atoi(argv[1]);
     if (port_no == 0) {

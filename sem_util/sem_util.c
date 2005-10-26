@@ -1,4 +1,4 @@
-#include <stdio.h> 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
@@ -84,7 +84,7 @@ static t_result incr_decr_sem_id (int sem_id, boolean incr, boolean undo) {
   sops.sem_num = (short) 0;  /* semaphore number 0 */
   sops.sem_op  = (short) (incr ? 1 : -1); /* semaphore operation */
   /* operation flags : process lock until the semaphore is zero */
-  sops.sem_flg = (undo ? SEM_UNDO : 0);  
+  sops.sem_flg = (undo ? SEM_UNDO : 0);
 
   do {
     errno = 0;

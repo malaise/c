@@ -40,5 +40,5 @@ extern int cir_read(struct cir_file* fd, char* buffer, unsigned int size);
  */
 extern int cir_gets(struct cir_file* fd, char* buffer, unsigned int size);
 
-#endif 
+#endif
 
