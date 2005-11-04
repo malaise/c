@@ -7,5 +7,3 @@ OBJS_libsem_util := sem_util.o
 
 include $(TEMPLATES)/c.mk
 
-sem_util.c : sem_util.h
-

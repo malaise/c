@@ -6,5 +6,3 @@ CCOPT_Linux :=
 
 include $(TEMPLATES)/c.mk
 
-enquire.c : float.h limits.h
-

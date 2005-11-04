@@ -11,7 +11,3 @@ LARGS_uncircular := -lm
 
 include $(TEMPLATES)/c.mk
 
-cirtail.c : circul.h
-uncircular.c : circul.h
-circul.c : circul.h
-

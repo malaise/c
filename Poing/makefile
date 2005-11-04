@@ -11,6 +11,3 @@ LARGS_Pong := $(SOCKET)/$(LIB)/libsocket.a $(MUTEX)/$(LIB)/libmutex.a -lpthread
 
 include $(TEMPLATES)/c.mk
 
-Ping.c : Poing.h
-Pong.c : Poing.h
-

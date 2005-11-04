@@ -9,7 +9,3 @@ LIBS_t_rusage := librusage.a
 
 include $(TEMPLATES)/c.mk
 
-rusage.c : rusage.h
-anal_rusage.c : rusage.h
-t_rusage.c : rusage.h
-

@@ -12,5 +12,3 @@ LARGS_client := $(SOCKET)/$(LIB)/libsocket.a $(MUTEX)/$(LIB)/libmutex.a -lget_li
 
 include $(TEMPLATES)/c.mk
 
-forker.c : forker_messages.h
-

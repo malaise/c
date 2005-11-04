@@ -15,7 +15,3 @@ LIBS_t_sig := libsig_util.a
 
 include $(TEMPLATES)/c.mk
 
-sig_util.c : sig_util.h
-t_pause.c : sig_util.h
-t_sig.c : sig_util.h
-

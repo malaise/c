@@ -7,5 +7,3 @@ CARGS_wait_evt :=
 
 include $(TEMPLATES)/c.mk
 
-wait_evt.c : wait_evt.h
-

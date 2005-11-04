@@ -9,7 +9,3 @@ LIBS_prof_adjtime := adjtime_call.a
 
 include $(TEMPLATES)/c.mk
 
-adjtime_call.c : adjtime_call.h
-adjtime.c : adjtime_call.h
-prof_adjtime.c : adjtime_call.h
-

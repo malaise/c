@@ -9,7 +9,3 @@ LIBS_try := libmodule1.so libmodule2.so
 
 include $(TEMPLATES)/c.mk
 
-try.c : module1.h module2.h
-module1.c : module1.h
-module2.c : module2.h
-
