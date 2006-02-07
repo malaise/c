@@ -1,8 +1,11 @@
 include $(HOME)/Makefiles/common.mk
 
-EXES := t_time
+BOOLEAN=../boolean
+TIMEVAL=../timeval
 
-LARGS_t_time := -ltimeval
+EXES := t_time
+CARGS_t_time := -I$(BOOLEAN) -I$(TIMEVAL)
+LARGS_t_time := $(TIMEVAL)/$(LIB)/libtimeval.a -lm
 
 include $(TEMPLATES)/c.mk
 
