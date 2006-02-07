@@ -119,6 +119,7 @@ int main (void) {
   usleep (1000000);
   dump_rusage_str ("After usleep 1000000");
 
+  /* Several successive gettimeofday */
   for (i = 0; i < NTIMES; i++) {
     get_time(&times[i]);
   }
