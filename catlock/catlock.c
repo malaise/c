@@ -22,36 +22,44 @@ int main (int argc, char *argv[]) {
   off_t offset;
   size_t rsize, wsize;
   char buffer[BLK_SZ];
+  char *ifm, *ofm;
 
+  /* 1 arg : dest file */
   /* 2 args: source file, dest file */
-  if (argc != 3) {
-    fprintf (stderr, "Usage: %s <source_file> <destination_file>\n", me);
+  if (argc == 2) {
+    ifm = NULL;
+    ofm = argv[1];
+  } else if (argc == 3) {
+    ifm = argv[1];
+    ofm = argv[2];
+  } else {
+    fprintf (stderr, "Usage: %s [ <source_file> ] <destination_file>\n", me);
     exit (1);
   }
 
   /* Open source file for reading */
-  if (strcmp (argv[1], "-") == 0) {
+  if ( (ifm == NULL) || (strcmp (ifm, "-") == 0) ) {
     sfd = 0;
   } else {
     for (;;) {
-      sfd = open (argv[1], O_RDONLY, 0);
+      sfd = open (ifm, O_RDONLY, 0);
       if ( (sfd >= 0) || (errno != EINTR) ) break;
     }
     if (sfd < 0) {
       fprintf (stderr, "%s: Cannot open file %s for reading -> %s\n",
-               me, argv[1], strerror(errno));
+               me, ifm, strerror(errno));
       exit (2);
     }
   }
 
   /* Open dest file for writting (not append, cause we need to lock */
   for (;;) {
-    dfd = open (argv[2], O_RDWR, 0);
+    dfd = open (ofm, O_RDWR, 0);
     if ( (dfd >= 0) || (errno != EINTR) ) break;
   }
   if (dfd < 0) {
     fprintf (stderr, "%s: Cannot open file %s for writting -> %s\n",
-             me, argv[2], strerror(errno));
+             me, ofm, strerror(errno));
     Close (sfd);
     exit (3);
   }
@@ -63,7 +71,7 @@ int main (int argc, char *argv[]) {
   }
   if (res != 0) {
     fprintf (stderr, "%s: Cannot lock file %s for appending -> %s\n",
-             me, argv[2], strerror(errno));
+             me, ofm, strerror(errno));
     (void) Close (sfd);
     (void) close (dfd);
     exit (3);
@@ -76,7 +84,7 @@ int main (int argc, char *argv[]) {
   }
   if (offset == (off_t) -1) {
     fprintf (stderr, "%s: Cannot seek file %s for appending -> %s\n",
-             me, argv[2], strerror(errno));
+             me, ofm, strerror(errno));
     (void) Close (sfd);
     (void) close (dfd);
     exit (3);
@@ -92,7 +100,7 @@ int main (int argc, char *argv[]) {
     }
     if (rsize == (size_t) -1) {
       fprintf (stderr, "%s: Cannot read from file %s -> %s\n",
-               me, argv[1], strerror(errno));
+               me, ifm, strerror(errno));
       (void) Close (sfd);
       (void) close (dfd);
       exit (2);
@@ -105,7 +113,7 @@ int main (int argc, char *argv[]) {
     }
     if (wsize != rsize) {
       fprintf (stderr, "%s: Cannot write to file %s -> %s\n",
-               me, argv[2], strerror(errno));
+               me, ofm, strerror(errno));
       (void) Close (sfd);
       (void) close (dfd);
       exit (3);
