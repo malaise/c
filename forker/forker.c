@@ -89,6 +89,38 @@ static void error (const char *msg, const char *extra) {
   fprintf(stderr, "%s %s ERROR: %s%s.\n", date_str(), PROG_NAME, msg, extra);
 }
 
+/* Extract basename of program name */
+static char * progpath = NULL;
+static const char * progname (void) {
+  char *p;
+  int i, len;
+
+  if (progpath == NULL) {
+    return "\"Noname\"";
+  }
+  p = progpath;
+
+  len = strlen(p);
+
+  for (i = 0; i < len; i++) {
+    if (progpath[i] == '/') {
+      p = &(progpath[i+1]);
+    }
+  }
+  return p;
+}
+
+/* Display program usage */
+static void usage (void) {
+  fprintf(stderr, "Usage: %s  <protocol>", progname());
+  fprintf(stderr, " <protocol> ::= <udp> | <tcp> | <ipm>\n");
+  fprintf(stderr, " <udp>      ::= -u <port>\n");
+  fprintf(stderr, " <tcp>      ::= -t <port>\n");
+  fprintf(stderr, " <ipm>      ::= -m <port>@<lan>\n");
+  fprintf(stderr, " <port>     ::= <port_num> | <port_nane>\n");
+  fprintf(stderr, " <lan>      ::= <lan_num> | <lan_name>\n");
+}
+
 /* Display trace message */
 static void trace (const char *f,...) {
   va_list args;
@@ -101,6 +133,13 @@ static void trace (const char *f,...) {
 
   printf ("\n");
 
+}
+
+/* Trace a socket error */
+static void terror (const char *call, const int code) {
+  if (code != SOC_OK) {
+    fprintf(stderr, "%s returned %s.\n", call, soc_error(code));
+  }
 }
 
 /* Toggle debug on SIGUSR1 */
@@ -132,7 +171,9 @@ static void sigchild_handler (int signum) {
   for (;;) {
     res = write(write_on_me, &c, 1);
     if (res > 0) break;
-    if ( (res == -1) && (errno != EINTR) ) break;
+    if ( (res == -1) && (errno != EINTR) ) {
+      break;
+    }
   }
   if (debug) {
     trace("Pipe written");
@@ -441,6 +482,7 @@ static boolean send (soc_token dest, soc_message msg,  soc_length len) {
     return TRUE;
   } else if (res != SOC_TAIL_ERR) {
     perror("sending on socket");
+    terror("soc_send", res);
     error("Cannot send report message", "");
     return FALSE;
   }
@@ -449,6 +491,7 @@ static boolean send (soc_token dest, soc_message msg,  soc_length len) {
   res = soc_resend(dest);
   if (res != SOC_OK) {
     perror("sending on socket");
+    terror("soc_resend", res);
     error("Cannot resend previous report message", "");
     return FALSE;
   }
@@ -470,6 +513,7 @@ static boolean send (soc_token dest, soc_message msg,  soc_length len) {
     return TRUE;
   } else {
     perror("sending on socket");
+    terror("soc_send", res);
     error("Cannot send report message", "");
     return FALSE;
   }
@@ -481,8 +525,12 @@ int main (int argc, char *argv[]) {
   char *debug_var;
   soc_token service_soc = NULL;
   soc_token client_soc = NULL;
-  boolean udp_mode;
+  typedef enum {None, Udp, Tcp, Ipm} proto_list;
+  int i, arobase;
+  proto_list proto;
   int port_no;
+  char *port_name;
+  char *lan;
   int nfds;
   fd_set saved_mask, select_mask;
   int service_fd, client_fd;
@@ -500,6 +548,7 @@ int main (int argc, char *argv[]) {
 
 
   /* Init debug */
+  progpath = argv[0];
   debug_var = getenv(FORKER_DEBUG);
   if ( (debug_var != NULL)
     && (strcmp(debug_var, "Y") == 0) ) {
@@ -510,47 +559,112 @@ int main (int argc, char *argv[]) {
   } /* Else unchanged from compilation option */
 
 
-  /* Check and parse the argument: -u/-t then port_num/port_no */
-  udp_mode = -1;
-  if (argc == 3) {
+  /* Check and parse the argument: -u/-t/-m then port [@lan]*/
+  proto = None;
+  if (argc == 1) {
+    fatal("Missing argument for protocole", "");
+  } else if (argc != 3) {
+    fatal("Invalid arguments", "");
+  } else {
     if (strcmp (argv[1], "-u") == 0) {
-      udp_mode = TRUE;
+      proto = Udp;
     } else if (strcmp (argv[1], "-t") == 0) {
-      udp_mode = FALSE;
+      proto = Tcp;
+    } else if (strcmp (argv[1], "-m") == 0) {
+      proto = Ipm;
+    } else {
+      fatal("Invalid argument: ", argv[1]);
     }
   }
-  if (udp_mode == -1) {
-    fatal("Invalid argument. -u/-t then port_name/port_num expected", "");
+  if (proto == None) {
+    usage();
     exit(FATAL_ERROR_EXIT_CODE);
   }
 
+  /* Set port_name */
+  port_name = malloc(strlen(argv[2])+1);
+  strcpy (port_name, argv[2]);
+  port_no = atoi(port_name);
+
+  /* Decode ipm address: <port>@<lan>:* One unique '@', not first nor last */
+  if (proto == Ipm) {
+    arobase = 0;
+    for (i = 0; i < (signed)strlen(argv[2]); i++) {
+      if (port_name[i] == '@') {
+        if (arobase != 0) {
+          /* Several arobase: error */
+          arobase = 0;
+          break;
+        }
+        arobase = i;
+      }
+    }
+    /* Check arobase is found not last */
+    if (arobase == (signed)strlen(port_name) - 1) arobase = 0;
+    if (arobase == 0) {
+      fatal("Invalid ipm address: ", port_name);
+      usage();
+      exit(FATAL_ERROR_EXIT_CODE);
+    }
+    lan = &port_name[arobase+1];
+    port_name[arobase] = '\0';
+  }
+
   /* Create the socket */
-  if (soc_open(&service_soc,
-               (udp_mode ? udp_socket : tcp_header_socket) ) != SOC_OK) {
+  res = soc_open(&service_soc,
+               ((proto == Tcp) ? tcp_header_socket : udp_socket) );
+  if (res != SOC_OK) {
     perror("opening socket");
+    terror("soc_open", res);
     fatal("Cannot create socket", "");
     exit(FATAL_ERROR_EXIT_CODE);
   }
 
+  /* Set IPM LAN */
+  if (proto == Ipm) {
+    if (port_no <= 0) {
+      res = soc_set_dest_name_service(service_soc, lan, TRUE, port_name);
+      if (res != SOC_OK) {
+        perror("setting socket dest lan name with port name");
+        terror("soc_set_dest_name_service", res);
+        fatal("Cannot set ipm lan to: ", argv[2]);
+        exit (FATAL_ERROR_EXIT_CODE);
+      }
+    } else {
+      res = soc_set_dest_name_port (service_soc, lan, TRUE, port_no);
+      if (res != SOC_OK) {
+        perror("setting socket dest lan name with port no");
+        terror("soc_set_dest_name_port", res);
+        fatal("Cannot set ipm lan to: ", argv[2]);
+        exit (FATAL_ERROR_EXIT_CODE);
+      }
+    }
+  }
+
   /* Bind */
-  port_no = atoi(argv[2]);
   if (port_no <= 0) {
-    if (soc_link_service(service_soc, argv[2]) != SOC_OK) {
-      perror ("linking socket");
-      fatal("Cannot bind socket to name: ", argv[2]);
+    res = soc_link_service(service_soc, port_name);
+    if (res != SOC_OK) {
+      perror("linking socket");
+      terror("soc_link_service", res);
+      fatal("Cannot bind socket to name: ", port_name);
       exit (FATAL_ERROR_EXIT_CODE);
     }
   } else {
-    if (soc_link_port(service_soc, port_no) != SOC_OK) {
-      perror ("linking socket");
-      fatal("Cannot bind socket to no: ", argv[2]);
+    res = soc_link_port(service_soc, port_no);
+    if (res != SOC_OK) {
+      perror("linking socket");
+      terror("soc_link_port", res);
+      fatal("Cannot bind socket to no: ", port_name);
       exit (FATAL_ERROR_EXIT_CODE);
     }
   }
 
-  /* Get socket fd  for the select */
-  if (soc_get_id(service_soc, &service_fd) != SOC_OK) {
-    perror ("getting service socket fd");
+  /* Get socket fd for the select */
+  res = soc_get_id(service_soc, &service_fd);
+  if (res != SOC_OK) {
+    perror("getting service socket fd");
+    terror("soc_get_id", res);
     fatal("Cannot get service socket fd", "");
     exit (FATAL_ERROR_EXIT_CODE);
   }
@@ -644,6 +758,7 @@ int main (int argc, char *argv[]) {
       for (;;) {
         res = read(pipe_fd[0], &c, 1);
         if (res > 0) break;
+        if ( (res == -1) && (errno != EINTR) ) break;
       }
       if (res < 0) {
         perror("read");
@@ -661,7 +776,7 @@ int main (int argc, char *argv[]) {
         /* Get a dead pid */
         for (;;) {
           res = waitpid((pid_t)-1, &(report.exit_rep.exit_status), WNOHANG);
-          if (res >= 0) break;
+          if (res > 0) break;
           if ( (res == -1) && (errno != EINTR) ) break;
         }
         if ((res == 0) || ( (res == -1) && (errno == ECHILD) ) ) {
@@ -702,11 +817,13 @@ int main (int argc, char *argv[]) {
 
         /* Set dest to client for report */
         do_send = TRUE;
-        if (udp_mode) {
+        if (proto != Tcp) {
           client_soc = service_soc;
-          if (soc_set_dest_host_port(client_soc, &(cur_com_cell->client_host),
-                                       cur_com_cell->client_port) != SOC_OK) {
+          res = soc_set_dest_host_port(client_soc, &(cur_com_cell->client_host),
+                                       cur_com_cell->client_port);
+          if (res != SOC_OK) {
             error("Cannot set dest to client", "");
+            terror("soc_set_dest_host_port", res);
             do_send = FALSE;
           }
         } else {
@@ -743,24 +860,30 @@ int main (int argc, char *argv[]) {
       continue;
     }
 
-    if ( (!udp_mode) && FD_ISSET(service_fd, &select_mask)) {
+    if ( (proto == Tcp) && FD_ISSET(service_fd, &select_mask)) {
       if (debug) {
         trace ("Accepting new client");
       }
       /* Accept */
       client_soc = init_soc;
-      if (soc_accept(service_soc, &client_soc) != SOC_OK) {
-        perror ("accepting new client");
-        error ("Cannot accept new client", "");
+      res = soc_accept(service_soc, &client_soc);
+      if (res  != SOC_OK) {
+        perror("accepting new client");
+        terror("soc_accept", res);
+        error("Cannot accept new client", "");
         continue;
       }
-      if (soc_set_blocking(client_soc, FALSE) != SOC_OK) {
-        perror ("setting non blocking");
-        error ("Cannot set new client socket non blocking", "");
+      res = soc_set_blocking(client_soc, FALSE);
+      if (res  != SOC_OK) {
+        perror("setting non blocking");
+        terror("soc_set_blocking", res);
+        error("Cannot set new client socket non blocking", "");
       }
-      if (soc_get_id (client_soc, &client_fd) != SOC_OK) {
-        perror ("getting new client fd");
-        error ("Cannot get fd of new client", "");
+      res  = soc_get_id (client_soc, &client_fd);
+      if (res  != SOC_OK) {
+        perror("getting new client fd");
+        terror("soc_get_id", res);
+        error("Cannot get fd of new client", "");
         continue;
       }
 
@@ -794,7 +917,7 @@ int main (int argc, char *argv[]) {
 
     /* Get client socket */
     client_soc = init_soc;
-    if (udp_mode) {
+    if (proto != Tcp) {
       if (FD_ISSET(service_fd, &select_mask)) {
         client_soc = service_soc;
         client_fd  = service_fd;
@@ -832,10 +955,10 @@ int main (int argc, char *argv[]) {
 
     /* Read request */
     request_len = soc_receive(client_soc, &request_message,
-                              sizeof(request_message), udp_mode);
+                              sizeof(request_message), (proto != Tcp));
 
     /* Handle Tcp disconnection */
-    if (!udp_mode && ( (request_len == SOC_CONN_LOST)
+    if ((proto == Tcp) && ( (request_len == SOC_CONN_LOST)
                || (request_len == SOC_READ_0) ) ) {
       if (debug) {
         trace ("Disconnection of client on fd %d", client_fd);
@@ -862,12 +985,13 @@ int main (int argc, char *argv[]) {
     /* Check len */
     if (request_len < SOC_OK) {
       perror("receiving from socket");
+      terror("soc_receive", request_len);
       error("Cannot receive request message", "");
       continue;
     }
 
     /* Check message */
-    if (request_len < (int)sizeof(request_message.kind)) {
+    if ((unsigned int)request_len < sizeof(request_message.kind)) {
       error("Received a message of invalid size", "");
       continue;
     }
@@ -877,11 +1001,15 @@ int main (int argc, char *argv[]) {
 
 
     /* Get client host and port */
-    if (soc_get_dest_host(client_soc, &request_host) != SOC_OK) {
+    res  = soc_get_dest_host(client_soc, &request_host);
+    if (res != SOC_OK) {
+      terror("soc_get_dest_host", res);
       error("Cannot get client host", "");
       continue;
     }
-    if (soc_get_dest_port(client_soc, &request_port) != SOC_OK) {
+    res = soc_get_dest_port(client_soc, &request_port);
+    if (res != SOC_OK) {
+      terror("soc_get_dest_port", res);
       error("Cannot get client port", "");
       continue;
     }

@@ -28,16 +28,25 @@ static void cat_str (char *to, char *str) {
 }
 
 
+/* Trace a socket error */
+static void terror (const char *call, const int code) {
+  if (code != SOC_OK) {
+    fprintf(stderr, "%s returned %s.\n", call, soc_error(code));
+  }
+}
+
+
 int main(int argc, char *argv[]) {
 
   command_number number;
-  boolean udp_mode;
+  typedef enum {None, Udp, Tcp, Ipm} proto_list;
+  proto_list proto;
   soc_token soc = NULL;
   int port_no;
   char buff[500];
   request_message_t request;
   report_message_t report;
-  int i, n;
+  int i, n, res;
   soc_host  my_host;
   soc_port  my_port;
 
@@ -45,54 +54,75 @@ int main(int argc, char *argv[]) {
   /* printf("Req_size: %d\n", sizeof(request_message_t)); */
   /* printf("Rep_size: %d\n", sizeof(report_message_t)); */
 
-  udp_mode = -1;
+  proto = None;
   if (argc == 4) {
     if (strcmp (argv[1], "-u") == 0) {
-      udp_mode = TRUE;
+      proto = Udp;
     } else if (strcmp (argv[1], "-t") == 0) {
-      udp_mode = FALSE;
+      proto = Tcp;
+    } else if (strcmp (argv[1], "-m") == 0) {
+      proto = Ipm;
     }
   }
-  if (udp_mode == -1) {
-    fprintf(stderr, "Error. Two args -u/-t <hostname> <port_name/num> expected.\n");
+  if (proto == None) {
+    fprintf(stderr, "Error. Three args -u/-t/-m <hostname> <port_name/num> expected.\n");
     exit(1);
   }
 
   /* Socket stuff */
-  if (soc_open(&soc, (udp_mode ? udp_socket : tcp_header_socket)) != SOC_OK) {
+  res = soc_open(&soc, (proto == Tcp ? tcp_header_socket : udp_socket));
+  if (res != SOC_OK) {
     perror("soc_open");
+    terror("soc_open", res);
     exit(1);
   }
-  if (udp_mode && soc_link_dynamic(soc) != SOC_OK) {
-    perror("soc_link_dynamic");
-    exit(1);
-  }
+
+  /* Dest to host (tcp/udp) or lan (ipm) */
   port_no = atoi(argv[3]);
   if (port_no <= 0) {
-    if (soc_set_dest_name_service(soc, argv[2], FALSE, argv[3]) != SOC_OK) {
-      perror("soc_set_dest_service");
+    res  = soc_set_dest_name_service(soc, argv[2], proto == Ipm, argv[3]);
+    if (res != SOC_OK) {
+      perror("soc_set_dest_name_service");
+      terror("soc_set_dest_name_service", res);
       exit (1);
     }
   } else {
-    if (soc_set_dest_name_port(soc, argv[2], FALSE, port_no) != SOC_OK) {
-      perror("soc_set_dest_port");
+    res  = soc_set_dest_name_port(soc, argv[2], proto == Ipm, port_no);
+    if (res != SOC_OK) {
+      perror("soc_set_dest_name_port");
       exit (1);
     }
   }
-  if (soc_set_blocking(soc, FALSE) != SOC_OK) {
+  if (proto != Tcp) {
+    res = soc_link_dynamic(soc);
+    if (res != SOC_OK) {
+      perror("soc_link_dynamic");
+      terror("soc_link_dynamic", res);
+      exit(1);
+    }
+  }
+  res = soc_set_blocking(soc, FALSE);
+  if (res != SOC_OK) {
     perror("soc_set_blocking");
+    terror("soc_set_blocking", res);
     exit(1);
   }
 
   /* Get current host and port */
-  if (soc_get_local_host_id(&my_host) != SOC_OK) {
-    perror ("soc_get_local_host");
+  res = soc_get_local_host_id(&my_host);
+  if (res != SOC_OK) {
+    perror("soc_get_local_host");
+    terror("soc_get_local_host", res);
     exit(1);
   }
   my_port = 0;
-  if (udp_mode && soc_get_linked_port(soc, &my_port) != SOC_OK) {
-    perror("soc_get_linked_port");
-    exit(1);
+  if (proto != Tcp) {
+    res = soc_get_linked_port(soc, &my_port);
+    if (res != SOC_OK) {
+      perror("soc_get_linked_port");
+      terror("soc_get_linked_port", res);
+      exit(1);
+    }
   }
   printf ("I am host %u port %u\n", my_host.integer, my_port);
 
@@ -171,8 +201,10 @@ int main(int argc, char *argv[]) {
         }
       }
 
-      if (soc_send(soc, (char*)&request, sizeof(request)) != SOC_OK) {
+      res = soc_send(soc, (char*)&request, sizeof(request));
+      if (res != SOC_OK) {
         perror("soc_send");
+        terror("soc_send", res);
       }
 
     } else if (strcmp(buff, "k") == 0) {
@@ -193,8 +225,10 @@ int main(int argc, char *argv[]) {
       }
       request.kill_req.signal_number = i;
 
-      if (soc_send(soc, (char*)&request, sizeof(request)) != SOC_OK) {
+      res = soc_send(soc, (char*)&request, sizeof(request));
+      if (res != SOC_OK) {
         perror("soc_send");
+        terror("soc_send", res);
       }
 
     } else if (strcmp(buff, "e") == 0) {
@@ -208,16 +242,20 @@ int main(int argc, char *argv[]) {
       }
       request.fexit_req.exit_code = i;
 
-      if (soc_send(soc, (char*)&request, sizeof(request)) != SOC_OK) {
+      res = soc_send(soc, (char*)&request, sizeof(request));
+      if (res != SOC_OK) {
         perror("soc_send");
+        terror("soc_send", res);
       }
 
     } else if (strcmp(buff, "p") == 0) {
       /* Exit */
       request.kind = ping_command;
 
-      if (soc_send(soc, (char*)&request, sizeof(request)) != SOC_OK) {
+      res = soc_send(soc, (char*)&request, sizeof(request));
+      if (res != SOC_OK) {
         perror("soc_send");
+        terror("soc_send", res);
       }
 
     } else if (strcmp(buff, "r") == 0) {
