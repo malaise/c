@@ -12,6 +12,7 @@ OBJS_libudp := udp.o
 CARGS_udp := -I$(SOCKET)
 
 EXES := serial_spy gorgy
+CARGS_udp := -I$(BOOLEAN) -I$(SOCKET)
 CARGS_serial_spy := -DSTANDARD
 LIBS_serial_spy := libtty.a
 CARGS_gorgy := -DSTANDARD -I$(BOOLEAN) -I$(TIMEVAL) -I$(SIG_UTIL)
