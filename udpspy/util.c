@@ -8,16 +8,17 @@
 
 #include "boolean.h"
 #include "socket.h"
+#include "timeval.h"
 #include "util.h"
 
 /* String terminator */
 #define NUL '\0'
 
 /* Current version */
-#define VERSION "0.0"
+#define VERSION "1.0"
 
-/* Exit codes */
-#define ARG_ERROR_EXIT_CODE 1
+/* Exit code */
+#define ERROR_EXIT_CODE 1
 
 /* Our program name */
 static char prog_name[1024];
@@ -26,7 +27,7 @@ static char prog_name[1024];
 /* Debug on or off */
 #define DEBUG_VAR "UDPSPY_DEBUG"
 static boolean debug = FALSE;
-static void trace (const char *msg, const char *arg) {
+extern void trace (const char *msg, const char *arg) {
   if (debug) {
     fprintf (stderr, "%s->%s %s\n", prog_name, msg, arg);
   }
@@ -51,7 +52,7 @@ extern void usage (void) {
 extern void error (const char *msg, const char *arg) {
   fprintf (stderr, "ERROR: %s %s\n", msg, arg);
   usage();
-  exit (ARG_ERROR_EXIT_CODE);
+  exit (ERROR_EXIT_CODE);
 }
 
 /* Locate a char in a string. Return relative index (0 to N) or -1 */
@@ -72,87 +73,18 @@ static int locate (const char c, const char *str) {
   return NOT_FOUND;
 }
 
-/* Parse a byte from a string */
-static boolean parse_byte (const char *str, const int start, const int stop, byte *b) {
-  char buffer[1024];
-  unsigned long l;
-
-  /* Copy string from start to stop and NUL terminate */
-  (void) strncpy (buffer, &str[start], stop - start + 1);
-  buffer[stop - start + 1] = NUL;
-
-  /* Convert to int then to byte */
-  errno = 0;
-  l = strtoul (buffer, NULL, 0);
-  if ( (errno != 0) || (l > 255) ) {
-    return FALSE;
-  }
-  *b = (byte) l;
-  return TRUE;
-}
-  
-
 /* Parse lan name or num */
 static void parse_lan (const char *lan) {
-  int i;
-  /* Number and indexes of dots */
-  int di, ds[3];
-  boolean ok;
   
   trace ("Parsing lan", lan);
   /* Try to parse a LAN address byte.byte.byte.byte */
   /*  otherwise consider it is a lan name */
 
-  /* Look for a dot, count dosts and store indexes */
-  /* Check it is a digit otherwise */
-  /* di must be set 3 if OK */
-  di = 0;
-  i = 0;
-  for (;;) {
-    if (lan[i] == '.') {
-      /* Check and update dot number */
-      if (di == 3) {
-        /* Too many dots */
-        di = 0;
-        break;
-      }
-      /* Store this dot index */
-      ds[di] = i;
-      di++;
-    } else if (lan[i] == NUL) {
-      /* Done */
-      break;
-    } else if (! isdigit(lan[i])) {
-      /* Not a dot nor a digit */
-      di = 0;
-      break;
-    }
-    i++;
-  }
-
-  /* Check Nb of dots is 3 */
-  ok = (di == 3);
-
-  /* Store bytes */
-  if (ok) {
-    ok  = parse_byte (lan, 0, ds[0]-1, &lan_num.bytes[0]);
-  }
-  if (ok) {
-    ok  = parse_byte (lan, ds[0]+1, ds[1]-1, &lan_num.bytes[1]);
-  }
-  if (ok) {
-    ok  = parse_byte (lan, ds[1]+1, ds[2]-1, &lan_num.bytes[2]);
-  }
-  if (ok) {
-    ok  = parse_byte (lan, ds[2]+1, strlen(lan)-1,
-                      &lan_num.bytes[3]);
-  }
-
-  if (ok) {
-    char buffer[256];
-     sprintf (buffer, "%d.%d.%d.%d", (int)lan_num.bytes[0],
-              (int)lan_num.bytes[1], (int)lan_num.bytes[2],
-              (int)lan_num.bytes[3]);
+  if (soc_str2host (lan, &lan_num) == SOC_OK) {
+    char buffer[16];
+    sprintf (buffer, "%d.%d.%d.%d", (int)lan_num.bytes[0],
+             (int)lan_num.bytes[1], (int)lan_num.bytes[2],
+             (int)lan_num.bytes[3]);
     trace ("Lan parsed as address", buffer);
   } else {
     /* Byte parsing failed */
@@ -164,37 +96,16 @@ static void parse_lan (const char *lan) {
  
 /* Parse port name or num */
 static void parse_port (const char *port) {
-  int i;
-  unsigned long l;
-  char buffer[16];
 
-  trace ("Parsing port", port);
-  /* Check if it is digits */
-  i = 0;
-  for (;;) {
-    if (port[i] == NUL) {
-      /* Done */
-      break;
-    } else if (! isdigit(port[i])) {
-      /* Not a digit */
-      trace ("Port parsed as name", port);
-      strcpy (port_name, port);
-      return;
-    }
-    i++;
-  }
-
-  /* Convert to int then to short */
-  errno = 0;
-  l = strtoul (port, NULL, 0);
-  if ( (errno != 0) || (l > 65535) ) {
+  /* Trye to convert to port num */
+  if (soc_str2port (port, &port_num) == SOC_OK) {
+    char buffer[6];
+    sprintf (buffer, "%d", (int) port_num);
+    trace ("Port parsed as num", buffer);
+  } else {
     trace ("Port parsed as name", port);
     strcpy (port_name, port);
-    return;
   }
-  port_num = (soc_port) l;
-  sprintf (buffer, "%d", (int) port_num);
-  trace ("Port parsed as num", buffer);
 }
 
 /* Parse lan:port, exit on error */
@@ -213,6 +124,10 @@ static void parse_arg (const char *arg) {
   if ( (column_i == NOT_FOUND) 
     || (column_i == 1) 
     || (column_i == (int)strlen(arg)-1) ) {
+    error ("invalid argument", arg);
+  }
+  /* Only one clumn */
+  if (locate (':', &arg[column_i+1]) != NOT_FOUND) {
     error ("invalid argument", arg);
   }
 
@@ -246,11 +161,11 @@ extern void parse_args (const int argc, const char *argv[]) {
     if ( (strcmp (argv[1], "-h") == 0)
       || (strcmp (argv[1], "--help") == 0) ) {
       usage();
-      exit (ARG_ERROR_EXIT_CODE);
+      exit (ERROR_EXIT_CODE);
     } else if ( (strcmp (argv[1], "-v") == 0)
              || (strcmp (argv[1], "--version") == 0) ) {
       fprintf (stderr, "%s version %s\n", prog_name, VERSION);
-      exit (ARG_ERROR_EXIT_CODE);
+      exit (ERROR_EXIT_CODE);
     } else {
       full = FALSE;
       parse_arg (argv[1]);
@@ -271,5 +186,58 @@ extern void parse_args (const int argc, const char *argv[]) {
   } else {
     error ("too many arguments", "");
   }
+}
+
+/* Bind the socket to the IPM lan and port */
+extern void bind_socket (soc_token socket) {
+  int res1, res2;
+  char buffer[255];
+
+  /* Set dest and bind */
+  if (strlen(port_name) == 0) {
+    if (strlen(lan_name) == 0) {
+      /* Lan num and port num */
+      res1 = soc_set_dest_host_port (socket, &lan_num, port_num);
+    } else {
+      /* Lan name and port num */
+      res1 = soc_set_dest_name_port (socket, lan_name, TRUE, port_num);
+    }
+    res2 = (res1 == SOC_OK) && soc_link_port (socket, port_num);
+  } else {
+    if (strlen(lan_name) == 0) {
+      /* Lan num and port name */
+      res1 = soc_set_dest_host_service (socket, &lan_num, port_name);
+    } else {
+      /* Lan name and port name */
+      res1 = soc_set_dest_name_service (socket, lan_name, TRUE, port_name);
+    }
+    res2 = (res1 == SOC_OK) && soc_link_service (socket, port_name);
+  }
+
+  if (res1 != SOC_OK) {
+    sprintf (buffer, "%d", res1);
+    trace ("soc_set_dest error", "buffer");
+    error ("cannot set socket dest", "");
+  }
+  if (res2 != SOC_OK) {
+    sprintf (buffer, "%d", res2);
+    trace ("soc_link error", "buffer");
+    error ("cannot link socket", "");
+  }
+
+}
+
+/* Put message info */
+extern void display (const char *message, const int length) {
+
+  /* Put time */
+  printf ("Received message\n");
+  /* Put from */
+  /* Put data if full */
+  if (!full) {
+    return;
+  }
+  printf ("%d %s\n", length, message);
+
 }
 
