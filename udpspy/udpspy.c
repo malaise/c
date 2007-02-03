@@ -71,7 +71,7 @@ int main (const int argc, const char *argv[]) {
           trace ("soc_receive truncated message length", "buffer");
          }
          /* Put message info */
-         display (message, res);
+         display (socket, message, res);
       } 
     } else if (evtfd >= 0) {
       /* Unexpected event on an unexpected fd */
@@ -83,6 +83,7 @@ int main (const int argc, const char *argv[]) {
   } /* Main loop */
 
   /* Done */
+  printf ("Done.\n");
   (void) soc_close (&socket);
   return 0;
 }

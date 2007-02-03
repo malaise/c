@@ -4,7 +4,7 @@
 #include <libgen.h>
 #include <ctype.h>
 #include <errno.h>
-
+#include <time.h>
 
 #include "boolean.h"
 #include "socket.h"
@@ -188,6 +188,45 @@ extern void parse_args (const int argc, const char *argv[]) {
   }
 }
 
+static void put_stamp (const soc_token socket, const char *msg) {
+  /* Result of operation */
+  int res;
+  char buffer[255];
+
+  /* Time stuff */
+  timeout_t time;
+  struct tm *p_tm;
+
+  /* Scoekt address */
+  soc_host from_host;
+  soc_port from_port;
+
+  /* Get time */
+  get_time (&time);
+  p_tm = gmtime (&time.tv_sec);
+
+  /* Get from */
+  if ((res = soc_get_dest_host (socket, &from_host)) != SOC_OK) {
+    sprintf (buffer, "%d", res);
+    trace ("soc_get_dest_host error", "buffer");
+    error ("cannot get sender host", "");
+  }
+  if ((res = soc_get_dest_port (socket, &from_port)) != SOC_OK) {
+    sprintf (buffer, "%d", res);
+    trace ("soc_get_dest_port error", "buffer");
+    error ("cannot get sender port", "");
+  }
+
+  /* Put time and from */
+  printf ("At %02d/%02d %02d:%02d:%02d.%03d  %s %d.%d.%d.%d:%d",
+          p_tm->tm_mon, p_tm->tm_mday,
+          p_tm->tm_hour, p_tm->tm_min, p_tm->tm_sec,
+          (int)(time.tv_usec / 1000), msg,
+          (int)from_host.bytes[0], (int)from_host.bytes[1],
+          (int)from_host.bytes[2], (int)from_host.bytes[3],
+          (int)from_port);
+}
+  
 /* Bind the socket to the IPM lan and port */
 extern void bind_socket (soc_token socket) {
   int res1, res2;
@@ -225,19 +264,62 @@ extern void bind_socket (soc_token socket) {
     error ("cannot link socket", "");
   }
 
+  /* Put address we are listening to */
+  put_stamp (socket, "Listening to");
+  printf ("\n");
+
 }
 
 /* Put message info */
-extern void display (const char *message, const int length) {
+#define BPL 16
+extern void display (const soc_token socket, const char *message,
+                                             const int length) {
+  int nr, r, nc, c, o, s;
 
-  /* Put time */
-  printf ("Received message\n");
-  /* Put from */
+  /* Put from and lenght */
+  put_stamp (socket, "From");
+  printf ("  Len %d", length);
+
   /* Put data if full */
-  if (!full) {
-    return;
-  }
-  printf ("%d %s\n", length, message);
+  if (full) {
+    /* Separator offset */
+    s = BPL / 2 - 1;
+    /* Loop on number of rows */
+    nr = length / BPL + 1;
+    /* Offset in message for c */
+    o = 0;
+    for (r = 1; r <= nr; r++) { 
+      /* Number of columns for this row: BPL or the remaining */
+      nc = (r != nr ? BPL : length % BPL);
+      if (nc == 0) {
+        break;
+      }
+      /* Dump hexa */
+      printf ("\n  ");
+      for (c = 0; c < BPL; c++) {
+        if (c < nc) {
+          printf ("%02x ", (int)message[o + c]);
+        } else {
+          printf ("   ");
+        }
+        if (c == s) {
+          printf ("  ");
+        }
+      }
+      printf ("  ");
+      /* Dump ascii */
+      for (c = 0; c < nc; c++) {
+        if (isprint(message[o + c])) {
+          printf ("%c", (int)message[o + c]);
+        } else {
+          printf (".");
+        }
+      }
+      o += BPL;
+    }
+    printf ("\n");
+  } /* Dump if full */
 
+  printf ("\n");
 }
 

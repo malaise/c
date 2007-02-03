@@ -17,5 +17,6 @@ extern void error (const char *msg, const char *arg)
 extern void bind_socket (soc_token socket);
 
 /* Put message info */
-extern void display (const char *message, const int length);
+extern void display (const soc_token socket, 
+                     const char *message, const int length);
 
