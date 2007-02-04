@@ -277,8 +277,21 @@ extern void bind_socket (soc_token socket) {
 
   /* Put address we are listening to */
   put_stamp (socket, "Listening to");
-  printf ("\n");
 
+  /* Put kind of dump */
+  printf ("  For ");
+  switch (dump_kind) {
+    case no_dump :
+      printf ("no");
+      break;
+    case short_dump :
+      printf ("short");
+      break;
+    case long_dump :
+      printf ("long");
+      break;
+  }
+  printf (" dumps.\n");
 }
 
 /* Put message info */
@@ -286,7 +299,8 @@ extern void bind_socket (soc_token socket) {
 #define SHORT_LENGTH 64
 extern void display (const soc_token socket, const char *message,
                                              const int length) {
-  int nr, r, nc, c, o, s, len;
+  int nrow, row, ncol, col, offset, sep, len;
+  unsigned char uchar;
 
   /* Put from and lenght */
   put_stamp (socket, "From");
@@ -301,40 +315,41 @@ extern void display (const soc_token socket, const char *message,
     }
 
     /* Separator offset */
-    s = BPL / 2 - 1;
+    sep = BPL / 2 - 1;
     /* Loop on number of rows */
-    nr = len / BPL + 1;
+    nrow = len / BPL + 1;
     /* Offset in message for c */
-    o = 0;
+    offset = 0;
 
-    for (r = 1; r <= nr; r++) {
+    for (row = 1; row <= nrow; row++) {
       /* Number of columns for this row: BPL or the remaining */
-      nc = (r != nr ? BPL : len % BPL);
-      if (nc == 0) {
+      ncol = (row != nrow ? BPL : len % BPL);
+      if (ncol == 0) {
         break;
       }
       /* Dump hexa */
       printf ("\n  ");
-      for (c = 0; c < BPL; c++) {
-        if (c < nc) {
-          printf ("%02x ", (int)message[o + c]);
+      for (col = 0; col < BPL; col++) {
+        if (col < ncol) {
+          uchar = (unsigned char)message[offset + col];
+          printf ("%02x ", (int)uchar);
         } else {
           printf ("   ");
         }
-        if (c == s) {
+        if (col == sep) {
           printf ("  ");
         }
       }
       printf ("  ");
       /* Dump ascii */
-      for (c = 0; c < nc; c++) {
-        if (isprint(message[o + c])) {
-          printf ("%c", (int)message[o + c]);
+      for (col = 0; col < ncol; col++) {
+        if (isprint((int)message[offset + col])) {
+          printf ("%c", message[offset + col]);
         } else {
           printf (".");
         }
       }
-      o += BPL;
+      offset += BPL;
     }
     printf ("\n");
   } /* if dump */
