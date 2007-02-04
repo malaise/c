@@ -24,23 +24,19 @@ int main (const int argc, const char *argv[]) {
 
   /* Create socket and get fd */
   if ( (res = soc_open (&socket, udp_socket)) != SOC_OK) {
-    sprintf (buffer, "%d", res);
-    trace ("soc_open error", "buffer");
+    trace ("soc_open error", soc_error (res));
     error ("cannot open socket", "");
   }
   if ( (res = soc_get_id (socket, &fd)) != SOC_OK) {
-    sprintf (buffer, "%d", res);
-    trace ("soc_get_id error", "buffer");
+    trace ("soc_get_id error", soc_error (res));
     error ("cannot get socket fd", "");
   }
-   
   /* Bind socket to lan:port */
   bind_socket (socket);
 
   /* Attach fd for reading */
   if ( (res = evt_add_fd (fd, TRUE)) != OK) {
-    sprintf (buffer, "%d", fd);
-    trace ("evt_add_fd error", buffer);
+    trace ("evt_add_fd error", "");
     error ("cannot add fd", "");
   }
 
@@ -49,8 +45,7 @@ int main (const int argc, const char *argv[]) {
   for (;;) {
     /* Infinite wait for events */
     if ( (res = evt_wait (&evtfd, & read, &timeout)) != OK) {
-      sprintf (buffer, "%d", res);
-      trace ("evt_wait error", "buffer");
+      trace ("evt_wait error", "");
       error ("cannot wait for event", "");
     }
     /* Analyse event */
@@ -63,16 +58,17 @@ int main (const int argc, const char *argv[]) {
       /* Got a packet: read it */
       if ((res = soc_receive (socket, message, sizeof(message), TRUE)) <= 0) {
         sprintf (buffer, "%d", res);
-        trace ("soc_receive error", "buffer");
+        trace ("soc_receive error", soc_error (res));
         error ("cannot read message", "");
       } else {
         if (res > (int)sizeof(message)) {
           sprintf (buffer, "%d", res);
           trace ("soc_receive truncated message length", "buffer");
+          res = (int)sizeof(message);
          }
          /* Put message info */
          display (socket, message, res);
-      } 
+      }
     } else if (evtfd >= 0) {
       /* Unexpected event on an unexpected fd */
       sprintf (buffer, "%d", evtfd);
@@ -84,6 +80,8 @@ int main (const int argc, const char *argv[]) {
 
   /* Done */
   printf ("Done.\n");
+  (void) evt_del_fd (fd, TRUE);
   (void) soc_close (&socket);
   return 0;
 }
+

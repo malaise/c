@@ -1,7 +1,7 @@
 include $(HOME)/Makefiles/common.mk
 
 LIBS := libcircul
-OBJS_libcircul := circul.o 
+OBJS_libcircul := circul.o
 
 EXES := cirtail uncircular
 LIBS_cirtail := libcircul.a

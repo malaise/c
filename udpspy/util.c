@@ -15,7 +15,7 @@
 #define NUL '\0'
 
 /* Current version */
-#define VERSION "1.0"
+#define VERSION "1.1"
 
 /* Exit code */
 #define ERROR_EXIT_CODE 1
@@ -34,7 +34,8 @@ extern void trace (const char *msg, const char *arg) {
 }
 
 /* Result of argument parsing */
-static boolean full;
+typedef enum {no_dump, short_dump, long_dump} dump_kind_list;
+static dump_kind_list dump_kind;
 static char lan_name[1024];
 static soc_host lan_num;
 static char port_name[1024];
@@ -42,10 +43,13 @@ static soc_port port_num;
 
 /* Display usage message on stderr */
 extern void usage (void) {
-  fprintf (stderr, "Usage: %s [ -f ] <lan>:<port>\n", prog_name);
+  fprintf (stderr, "Usage: %s [ -s | -l ] <lan>:<port>\n", prog_name);
+  fprintf (stderr, "   or: %s   -h | --help\n", prog_name);
+  fprintf (stderr, "   or: %s   -v | --version\n", prog_name);
   fprintf (stderr, " <lan>  ::=  <lan_name>  | <lan_num>\n");
   fprintf (stderr, " <port> ::=  <port_name> | <port_num>\n");
-  fprintf (stderr, " -f for full data dump\n");
+  fprintf (stderr, " -s or --short for short data dump.\n");
+  fprintf (stderr, " -l or --long for long data dump\n");
 }
 
 /* Display an error message on stderr and exit */
@@ -73,9 +77,27 @@ static int locate (const char c, const char *str) {
   return NOT_FOUND;
 }
 
+static int parse_dump (const char *flag) {
+  if (strcmp(flag, "-s") == 0) {
+    dump_kind = short_dump;
+    return TRUE;
+  } else if (strcmp(flag, "--short") == 0) {
+    dump_kind = short_dump;
+    return TRUE;
+  } else if (strcmp(flag, "-l") == 0) {
+    dump_kind = long_dump;
+    return TRUE;
+  } else if (strcmp(flag, "--long") == 0) {
+    dump_kind = long_dump;
+    return TRUE;
+  } else {
+    return FALSE;
+  }
+
+}
+
 /* Parse lan name or num */
 static void parse_lan (const char *lan) {
-  
   trace ("Parsing lan", lan);
   /* Try to parse a LAN address byte.byte.byte.byte */
   /*  otherwise consider it is a lan name */
@@ -91,9 +113,7 @@ static void parse_lan (const char *lan) {
     trace ("Lan parsed as name", lan);
     strcpy (lan_name, lan);
   }
-  
 }
- 
 /* Parse port name or num */
 static void parse_port (const char *port) {
 
@@ -121,8 +141,8 @@ static void parse_arg (const char *arg) {
 
   /* Locate column in arg */
   column_i = locate (':', arg);
-  if ( (column_i == NOT_FOUND) 
-    || (column_i == 1) 
+  if ( (column_i == NOT_FOUND)
+    || (column_i == 1)
     || (column_i == (int)strlen(arg)-1) ) {
     error ("invalid argument", arg);
   }
@@ -167,17 +187,15 @@ extern void parse_args (const int argc, const char *argv[]) {
       fprintf (stderr, "%s version %s\n", prog_name, VERSION);
       exit (ERROR_EXIT_CODE);
     } else {
-      full = FALSE;
+      dump_kind = no_dump;
       parse_arg (argv[1]);
-    }  
+    }
   } else if (argc == 3) {
-    if (strcmp (argv[1], "-f") == 0) {
-      trace ("Full detected as arg 1", "");
-      full = TRUE;
+    if (parse_dump(argv[1])) {
+      trace ("Dump detected as arg 1", "");
       parse_arg (argv[2]);
-    } else if (strcmp (argv[2], "-f") == 0) {
-      trace ("Full detected as arg 2", "");
-      full = TRUE;
+    } else if (parse_dump(argv[2])) {
+      trace ("Dump detected as arg 2", "");
       parse_arg (argv[1]);
     } else {
       trace ("Full not detected", "");
@@ -191,7 +209,6 @@ extern void parse_args (const int argc, const char *argv[]) {
 static void put_stamp (const soc_token socket, const char *msg) {
   /* Result of operation */
   int res;
-  char buffer[255];
 
   /* Time stuff */
   timeout_t time;
@@ -207,13 +224,11 @@ static void put_stamp (const soc_token socket, const char *msg) {
 
   /* Get from */
   if ((res = soc_get_dest_host (socket, &from_host)) != SOC_OK) {
-    sprintf (buffer, "%d", res);
-    trace ("soc_get_dest_host error", "buffer");
+    trace ("soc_get_dest_host error", soc_error (res));
     error ("cannot get sender host", "");
   }
   if ((res = soc_get_dest_port (socket, &from_port)) != SOC_OK) {
-    sprintf (buffer, "%d", res);
-    trace ("soc_get_dest_port error", "buffer");
+    trace ("soc_get_dest_port error", soc_error (res));
     error ("cannot get sender port", "");
   }
 
@@ -226,11 +241,9 @@ static void put_stamp (const soc_token socket, const char *msg) {
           (int)from_host.bytes[2], (int)from_host.bytes[3],
           (int)from_port);
 }
-  
 /* Bind the socket to the IPM lan and port */
 extern void bind_socket (soc_token socket) {
   int res1, res2;
-  char buffer[255];
 
   /* Set dest and bind */
   if (strlen(port_name) == 0) {
@@ -254,13 +267,11 @@ extern void bind_socket (soc_token socket) {
   }
 
   if (res1 != SOC_OK) {
-    sprintf (buffer, "%d", res1);
-    trace ("soc_set_dest error", "buffer");
+    trace ("soc_set_dest error", soc_error (res1));
     error ("cannot set socket dest", "");
   }
   if (res2 != SOC_OK) {
-    sprintf (buffer, "%d", res2);
-    trace ("soc_link error", "buffer");
+    trace ("soc_link error", soc_error (res2));
     error ("cannot link socket", "");
   }
 
@@ -272,25 +283,33 @@ extern void bind_socket (soc_token socket) {
 
 /* Put message info */
 #define BPL 16
+#define SHORT_LENGTH 64
 extern void display (const soc_token socket, const char *message,
                                              const int length) {
-  int nr, r, nc, c, o, s;
+  int nr, r, nc, c, o, s, len;
 
   /* Put from and lenght */
   put_stamp (socket, "From");
   printf ("  Len %d", length);
 
   /* Put data if full */
-  if (full) {
+  if (dump_kind != no_dump) {
+    len = length;
+    /* SHORT_LENGTH max of data if short dump */
+    if ( (dump_kind == short_dump) && (length > SHORT_LENGTH) ) {
+      len = SHORT_LENGTH;
+    }
+
     /* Separator offset */
     s = BPL / 2 - 1;
     /* Loop on number of rows */
-    nr = length / BPL + 1;
+    nr = len / BPL + 1;
     /* Offset in message for c */
     o = 0;
-    for (r = 1; r <= nr; r++) { 
+
+    for (r = 1; r <= nr; r++) {
       /* Number of columns for this row: BPL or the remaining */
-      nc = (r != nr ? BPL : length % BPL);
+      nc = (r != nr ? BPL : len % BPL);
       if (nc == 0) {
         break;
       }
@@ -318,7 +337,7 @@ extern void display (const soc_token socket, const char *message,
       o += BPL;
     }
     printf ("\n");
-  } /* Dump if full */
+  } /* if dump */
 
   printf ("\n");
 }

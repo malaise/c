@@ -68,7 +68,6 @@ t_result delete_sem_id (int sem_id) {
 
 t_result delete_sem_key (int sem_key) {
   int sem_id;
-	
   /* research of the id number associated with the key: key_sem */
   sem_id = get_sem_id (sem_key);
   if (sem_id  == ERR) return (ERR);
@@ -108,7 +107,7 @@ t_result decr_sem_key (int sem_key,  boolean undo) {
   int sem_id;
 
   sem_id = get_sem_id (sem_key);
-  if (sem_id  == ERR) return (ERR);	
+  if (sem_id  == ERR) return (ERR);
 
   return decr_sem_id (sem_id, undo);
 }
@@ -123,7 +122,7 @@ t_result incr_sem_key (int sem_key,  boolean undo) {
   int sem_id;
 
   sem_id = get_sem_id (sem_key);
-  if (sem_id  == -1) return (ERR);	
+  if (sem_id  == -1) return (ERR);
 
   return incr_sem_id(sem_id, undo);
 }

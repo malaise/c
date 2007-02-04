@@ -15,13 +15,13 @@
 
 #ifdef __STDC__
 
-/* First call to initialise the rusage procedure 	*/
-/* Need to be called once before call to dump_rusage 	*/
-/* Returns RUSAGE_OK, or RUSAGE_ERROR.		 	*/
+/* First call to initialise the rusage procedure */
+/* Need to be called once before call to dump_rusage */
+/* Returns RUSAGE_OK, or RUSAGE_ERROR. */
 extern int init_rusage(void);
 
-/* Call to dump a record. 				*/
-/* init_rusage must have been called first 		*/
+/* Call to dump a record. */
+/* init_rusage must have been called first */
 extern void dump_rusage(void);
 
 extern void dump_rusage_str(const char *);
@@ -30,15 +30,15 @@ extern void dump_rusage_str(const char *);
 
 extern int init_rusage();
 extern void dump_rusage();
-extern void dump_rusage_str();	
+extern void dump_rusage_str();
 
 #endif /* __STDC__ */
 
-/* Structure dumped in the file "rusage_PID" 		*/
-/* At each time the RUSAGE_SIG signal is received 	*/
-/* and to be read by anal_rusage program 		*/
+/* Structure dumped in the file "rusage_PID" */
+/* At each time the RUSAGE_SIG signal is received */
+/* and to be read by anal_rusage program */
 
-#define RU_USER_MSG_SIZE	128
+#define RU_USER_MSG_SIZE 128
 
 typedef struct {
   struct timeval time;

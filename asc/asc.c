@@ -15,12 +15,12 @@ int main (int argc, char *argv[]) {
 }
 
 static void help (char *str[]) {
-	printf ("-- usage : \n");
-	printf ("           ascii [ARG]\n");
-	printf ("             where ARG is a character or a string\n");
-	printf ("             if no argument is specified \n");
-	printf ("             print the whole ascii table\n\n");
-        draw (str, ALL, ' ');
+  printf ("-- usage : \n");
+  printf ("           ascii [ARG]\n");
+  printf ("             where ARG is a character or a string\n");
+  printf ("             if no argument is specified \n");
+  printf ("             print the whole ascii table\n\n");
+  draw (str, ALL, ' ');
 }
 
 static void draw (char *str[], int  count, char param) {

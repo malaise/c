@@ -58,7 +58,7 @@ static void next (void) {
 void init_tty (char *arg, int read) {
 
   char tty_name[50];
-  struct termio mode;	
+  struct termio mode;
 
   unsigned short c_flags;
 

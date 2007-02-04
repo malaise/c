@@ -7,8 +7,8 @@ SOCKET=../socket
 SIG_UTIL=../sig_util
 
 LIBS := libtty libudp
-OBJS_libtty := tty.o 
-OBJS_libudp := udp.o 
+OBJS_libtty := tty.o
+OBJS_libudp := udp.o
 CARGS_udp := -I$(SOCKET)
 
 EXES := serial_spy gorgy

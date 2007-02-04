@@ -14,7 +14,7 @@ LIBS_t_pause := libsig_util.a
 CARGS_t_sig := -I$(BOOLEAN) -I$(TIMEVAL)
 LIBS_t_sig := libsig_util.a
 LARGS_t_sig := $(TIMEVAL)/$(LIB)/libtimeval.a -lm
-LIBS_t_sig := libsig_util.a 
+LIBS_t_sig := libsig_util.a
 
 include $(TEMPLATES)/c.mk
 
