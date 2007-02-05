@@ -454,8 +454,7 @@ static boolean msg_ok (soc_length len, request_kind_list kind) {
     break;
     default:
       error("Received a message with invalid command", "");
-      return FALSE;
-    break;
+    return FALSE;
   }
   if (len == sizeof(request_u)) {
     return TRUE;
