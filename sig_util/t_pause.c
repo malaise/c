@@ -1,23 +1,21 @@
-#include <signal.h>
-#include <unistd.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
 #include <sys/time.h>
+#include <stdlib.h>
 
 #include "sig_util.h"
 
 #define ALRM_S 000005
 #define ALRM_U 000000
 
-static void handler_sigalrm(int signum);
-static void handler_sigusr1(int signum);
-static void handler_sigusr2(int signum);
+extern void  sigpause (int mask);
 
+static void handler_sigalrm(int sig);
+static void handler_sigusr1(int sig);
+static void handler_sigusr2(int sig);
 
-int main (void) {
-
-  sigset_t mask;
-
+int main(void) {
 
   printf ("My pid is %d\n", getpid());
   printf (
@@ -31,23 +29,21 @@ int main (void) {
   printf ("Start timer\n");
   arm_timer (ITIMER_REAL, (long)ALRM_S, (long)ALRM_U, 1);
 
-  sigaddset (&mask, SIGALRM);
-  sigaddset (&mask, SIGUSR1);
-  sigsuspend (&mask);
+  sigpause (sigmask(SIGALRM) | sigmask(SIGUSR1));
   printf ("Done.\n");
   exit(0);
 }
 
-void handler_sigalrm (int signum) {
-  printf ("        SIGALRM...%3d\n", signum);
+static void handler_sigalrm (int sig) {
+  printf ("        SIGALRM...%3d\n", sig);
 }
 
-void handler_sigusr1 (int signum) {
-  printf ("        SIGUSR1...%3d\n", signum);
+static void handler_sigusr1 (int sig) {
+  printf ("        SIGUSR1...%3d\n", sig);
 }
 
-void handler_sigusr2 (int signum) {
-  printf ("        SIGUSR2...%3d\n", signum);
+static void handler_sigusr2 (int sig) {
+  printf ("        SIGUSR2...%3d\n", sig);
 }
 
 
