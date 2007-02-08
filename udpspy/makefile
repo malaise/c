@@ -1,21 +1,13 @@
 include $(HOME)/Makefiles/common.mk
 
-BOOLEAN=../boolean
-SOCKET=../socket_evt
-TIMEVAL=../timeval
-WAIT_EVT=../wait_evt
+DINCL := boolean
+DLIBA := socket_evt wait_evt timeval
 
-EXES := udpspy
 LIBS := libutil
-
 OBJS_libutil := util.o
 
-CARGS_udpspy := -I$(BOOLEAN) -I$(SOCKET) -I$(TIMEVAL) -I$(WAIT_EVT)
-LARGS_udpspy := $(LIB)/libutil.a \
-                $(SOCKET)/$(LIB)/libsocket_evt.a \
-                $(WAIT_EVT)/$(LIB)/libwait_evt.a $(TIMEVAL)/$(LIB)/libtimeval.a \
-                -lpthread -lm
-CARGS_util := -I$(BOOLEAN) -I$(SOCKET) -I$(TIMEVAL)
+EXES := udpspy
+LIBS_udpspy := libutil.a
 
 include $(TEMPLATES)/c.mk
 
