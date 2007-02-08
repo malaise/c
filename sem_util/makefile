@@ -1,6 +1,6 @@
 include $(HOME)/Makefiles/common.mk
 
-DINC := boolean
+DINCL := boolean
 
 CCOPT := -O -D$(HOST) $(CCOPT)
 
