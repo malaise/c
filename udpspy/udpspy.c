@@ -56,10 +56,11 @@ int main (const int argc, const char *argv[]) {
       } /* else unexpected signal => drop */
     } else if (evtfd == fd) {
       /* Got a packet: read it */
-      if ((res = soc_receive (socket, message, sizeof(message), TRUE)) <= 0) {
+      res = soc_receive (socket, message, sizeof(message), TRUE);
+      if (res < 0) {
         sprintf (buffer, "%d", res);
         trace ("soc_receive error", soc_error (res));
-        error ("cannot read message", "");
+        error ("cannot read message", soc_error(res));
       } else {
         if (res > (int)sizeof(message)) {
           sprintf (buffer, "%d", res);
