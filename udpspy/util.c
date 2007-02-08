@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "boolean.h"
 #include "socket.h"
@@ -15,7 +16,7 @@
 #define NUL '\0'
 
 /* Current version */
-#define VERSION "1.1"
+#define VERSION "2.0"
 
 /* Exit code */
 #define ERROR_EXIT_CODE 1
@@ -34,7 +35,7 @@ extern void trace (const char *msg, const char *arg) {
 }
 
 /* Result of argument parsing */
-typedef enum {no_dump, short_dump, long_dump} dump_kind_list;
+typedef enum {no_dump, short_dump, long_dump, binary_dump} dump_kind_list;
 static dump_kind_list dump_kind;
 static char lan_name[1024];
 static soc_host lan_num;
@@ -43,13 +44,14 @@ static soc_port port_num;
 
 /* Display usage message on stderr */
 extern void usage (void) {
-  fprintf (stderr, "Usage: %s [ -s | -l ] <lan>:<port>\n", prog_name);
+  fprintf (stderr, "Usage: %s [ -s | -l | -b ] <lan>:<port>\n", prog_name);
   fprintf (stderr, "   or: %s   -h | --help\n", prog_name);
   fprintf (stderr, "   or: %s   -v | --version\n", prog_name);
   fprintf (stderr, " <lan>  ::=  <lan_name>  | <lan_num>\n");
   fprintf (stderr, " <port> ::=  <port_name> | <port_num>\n");
   fprintf (stderr, " -s or --short for short data dump.\n");
   fprintf (stderr, " -l or --long for long data dump\n");
+  fprintf (stderr, " -b or --binary for binary data dump\n");
 }
 
 /* Display an error message on stderr and exit */
@@ -78,17 +80,14 @@ static int locate (const char c, const char *str) {
 }
 
 static int parse_dump (const char *flag) {
-  if (strcmp(flag, "-s") == 0) {
+  if ( (strcmp(flag, "-s") == 0) || (strcmp(flag, "--short") == 0) ) {
     dump_kind = short_dump;
     return TRUE;
-  } else if (strcmp(flag, "--short") == 0) {
-    dump_kind = short_dump;
-    return TRUE;
-  } else if (strcmp(flag, "-l") == 0) {
+  } else if ( (strcmp(flag, "-l") == 0) || (strcmp(flag, "--long") == 0) ) {
     dump_kind = long_dump;
     return TRUE;
-  } else if (strcmp(flag, "--long") == 0) {
-    dump_kind = long_dump;
+  } else if ( (strcmp(flag, "-b") == 0) || (strcmp(flag, "--binary") == 0) ) {
+    dump_kind = binary_dump;
     return TRUE;
   } else {
     return FALSE;
@@ -276,22 +275,27 @@ extern void bind_socket (soc_token socket) {
   }
 
   /* Put address we are listening to */
-  put_stamp (socket, "Listening to");
+  if (dump_kind != binary_dump) {
+    put_stamp (socket, "Listening to");
 
-  /* Put kind of dump */
-  printf ("  For ");
-  switch (dump_kind) {
-    case no_dump :
-      printf ("no");
-      break;
-    case short_dump :
-      printf ("short");
-      break;
-    case long_dump :
-      printf ("long");
-      break;
+    /* Put kind of dump */
+    printf ("  For ");
+    switch (dump_kind) {
+      case no_dump :
+        printf ("no");
+        break;
+      case short_dump :
+        printf ("short");
+        break;
+      case long_dump :
+        printf ("long");
+        break;
+      case binary_dump :
+        /* Unreachable */
+        break;
+    }
+    printf (" dumps.\n");
   }
-  printf (" dumps.\n");
 }
 
 /* Put message info */
@@ -300,7 +304,22 @@ extern void bind_socket (soc_token socket) {
 extern void display (const soc_token socket, const char *message,
                                              const int length) {
   int nrow, row, ncol, col, offset, sep, len;
+  int res;
   unsigned char uchar;
+
+  if (dump_kind == binary_dump) {
+    /* Handle specific binary dump */
+    for (;;) {
+      res = write (1, message, length);
+      if (res >= 0) {
+        /* Done */
+        return;
+      } else if (errno != EINTR) {
+        perror ("write");
+        error ("cannot write binary dump of message", "");
+      }
+    }
+  }
 
   /* Put from and lenght */
   put_stamp (socket, "From");
@@ -355,5 +374,13 @@ extern void display (const soc_token socket, const char *message,
   } /* if dump */
 
   printf ("\n");
+}
+
+extern void the_end (void) {
+
+  if (dump_kind != binary_dump) {
+    printf ("Done.\n");
+  }
+  exit (0);
 }
 

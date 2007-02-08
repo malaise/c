@@ -20,3 +20,7 @@ extern void bind_socket (soc_token socket);
 extern void display (const soc_token socket,
                      const char *message, const int length);
 
+/* Execute end of program actions */
+extern void the_end (void)
+                    __attribute__ ((noreturn));
+

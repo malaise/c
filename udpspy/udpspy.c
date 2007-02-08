@@ -80,9 +80,8 @@ int main (const int argc, const char *argv[]) {
   } /* Main loop */
 
   /* Done */
-  printf ("Done.\n");
   (void) evt_del_fd (fd, TRUE);
   (void) soc_close (&socket);
-  return 0;
+  the_end ();
 }
 
