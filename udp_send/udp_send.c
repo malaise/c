@@ -99,16 +99,14 @@ int main (int argc, char *argv[]) {
     len = 0;
     for (;;) {
       /* Read a buffer of data from stdin */
-      res = get_line (NULL, buffer, sizeof(buffer));
-      if (res == -1) {
+      res = (int) get_text (NULL, buffer, sizeof(buffer));
+      if (res == 0) {
         /* End of input flow */
         break;
       }
       /* Concatenate to message */
       memmove (&message[len], buffer, res);
       len += res;
-      message[len] = '\n';
-      len ++;
     }
   }
 
