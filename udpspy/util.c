@@ -116,7 +116,7 @@ static void parse_lan (const char *lan) {
 /* Parse port name or num */
 static void parse_port (const char *port) {
 
-  /* Trye to convert to port num */
+  /* Try to convert to port num */
   if (soc_str2port (port, &port_num) == SOC_OK) {
     char buffer[6];
     sprintf (buffer, "%d", (int) port_num);
@@ -233,13 +233,14 @@ static void put_stamp (const soc_token socket, const char *msg) {
 
   /* Put time and from */
   printf ("At %02d/%02d %02d:%02d:%02d.%03d  %s %d.%d.%d.%d:%d",
-          p_tm->tm_mon, p_tm->tm_mday,
+          p_tm->tm_mon+1, p_tm->tm_mday,
           p_tm->tm_hour, p_tm->tm_min, p_tm->tm_sec,
           (int)(time.tv_usec / 1000), msg,
           (int)from_host.bytes[0], (int)from_host.bytes[1],
           (int)from_host.bytes[2], (int)from_host.bytes[3],
           (int)from_port);
 }
+
 /* Bind the socket to the IPM lan and port */
 extern void bind_socket (soc_token socket) {
   int res1, res2;
