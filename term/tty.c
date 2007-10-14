@@ -62,7 +62,6 @@ void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
   tcflag_t c_flags;
   speed_t speed;
   long flags;
-  
 
   parse (arg);
 
@@ -70,7 +69,7 @@ void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
   strcat (tty_name, &tty_spec[start]);
 
   /* Parse tty spec and set c_flags and speeds */
-  c_flags = CLOCAL;
+  c_flags = 0;
   next (); if (start == -1) EXIT;
 
   if      (strcmp(&tty_spec[start], "7") == 0) c_flags |= CS7;
@@ -157,12 +156,14 @@ void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
   } else {
     mode.c_oflag = 0;
     mode.c_iflag = 0;
-   }
+  }
+  mode.c_iflag |= IGNBRK;
   if (echo) {
     mode.c_lflag = ECHO;
   } else {
     mode.c_lflag = 0;
   }
+   mode.c_cflag |= CLOCAL | CREAD;
   if (ctsrts) {
     mode.c_cflag |= CRTSCTS;
   } else {
@@ -170,7 +171,7 @@ void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
     mode.c_iflag |= IXOFF | IXON;
   }
   mode.c_cc[VMIN] = 1;
-  mode.c_cc[VTIME] = 0;
+  mode.c_cc[VTIME] = 5;
 
   if (tcsetattr (fd, TCSANOW, &mode) < 0) {
     perror ("Error tcsetattr tty");
