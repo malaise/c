@@ -59,19 +59,19 @@ void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
   char tty_name[50];
   struct termios mode;
 
-  unsigned short c_flags;
+  tcflag_t c_flags;
+  speed_t speed;
   long flags;
+  
 
   parse (arg);
 
   strcpy (tty_name, TTY_DEV);
   strcat (tty_name, &tty_spec[start]);
 
-  next (); if (start == -1) EXIT;
+  /* Parse tty spec and set c_flags and speeds */
   c_flags = CLOCAL;
-  if (ctsrts) {
-    c_flags |= CRTSCTS;
-  } 
+  next (); if (start == -1) EXIT;
 
   if      (strcmp(&tty_spec[start], "7") == 0) c_flags |= CS7;
   else if (strcmp(&tty_spec[start], "8") == 0) c_flags |= CS8;
@@ -89,17 +89,17 @@ void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
   else    EXIT;
 
   next (); if (start == -1) EXIT;
-  if      (strcmp(&tty_spec[start],    "300") == 0) c_flags |= B300;
-  else if (strcmp(&tty_spec[start],    "600") == 0) c_flags |= B600;
-  else if (strcmp(&tty_spec[start],   "1200") == 0) c_flags |= B1200;
-  else if (strcmp(&tty_spec[start],   "1800") == 0) c_flags |= B1800;
-  else if (strcmp(&tty_spec[start],   "2400") == 0) c_flags |= B2400;
-  else if (strcmp(&tty_spec[start],   "4800") == 0) c_flags |= B4800;
-  else if (strcmp(&tty_spec[start],   "9600") == 0) c_flags |= B9600;
-  else if (strcmp(&tty_spec[start],  "19200") == 0) c_flags |= B19200;
-  else if (strcmp(&tty_spec[start],  "38400") == 0) c_flags |= B38400;
-  else if (strcmp(&tty_spec[start], "115200") == 0) c_flags |= B115200;
-  else if (strcmp(&tty_spec[start], "230400") == 0) c_flags |= B230400;
+  if      (strcmp(&tty_spec[start],    "300") == 0) speed = B300;
+  else if (strcmp(&tty_spec[start],    "600") == 0) speed = B600;
+  else if (strcmp(&tty_spec[start],   "1200") == 0) speed = B1200;
+  else if (strcmp(&tty_spec[start],   "1800") == 0) speed = B1800;
+  else if (strcmp(&tty_spec[start],   "2400") == 0) speed = B2400;
+  else if (strcmp(&tty_spec[start],   "4800") == 0) speed = B4800;
+  else if (strcmp(&tty_spec[start],   "9600") == 0) speed = B9600;
+  else if (strcmp(&tty_spec[start],  "19200") == 0) speed = B19200;
+  else if (strcmp(&tty_spec[start],  "38400") == 0) speed = B38400;
+  else if (strcmp(&tty_spec[start], "115200") == 0) speed = B115200;
+  else if (strcmp(&tty_spec[start], "230400") == 0) speed = B230400;
   else    EXIT;
 
   next (); if (start != -1) EXIT;
@@ -137,6 +137,20 @@ void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
     restore_tty ();
     exit (1);
   }
+
+  /* Set Serial line charactistics */
+  mode.c_cflag = c_flags;
+  if (cfsetispeed (&mode, speed) < 0) {
+    perror ("Error cfsetispeed");
+    fprintf (stderr, ">%s<\n", tty_name);
+    exit(1);
+  }
+  if (cfsetospeed (&mode, speed) < 0) {
+    perror ("Error cfsetospeed");
+    fprintf (stderr, ">%s<\n", tty_name);
+    exit(1);
+  }
+
   if (crlf) {
     mode.c_oflag = OCRNL;
     mode.c_iflag = ICRNL;
@@ -149,10 +163,12 @@ void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
   } else {
     mode.c_lflag = 0;
   }
-  if (!ctsrts) {
+  if (ctsrts) {
+    mode.c_cflag |= CRTSCTS;
+  } else {
+    mode.c_cflag &= ~CRTSCTS;
     mode.c_iflag |= IXOFF | IXON;
   }
-  mode.c_cflag = c_flags;
   mode.c_cc[VMIN] = 1;
   mode.c_cc[VTIME] = 0;
 
