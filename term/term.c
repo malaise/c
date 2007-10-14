@@ -79,18 +79,22 @@ fprintf (stderr, "kbd event selected\n");
           perror ("read kbd");
         }
 #ifdef DEBUG
-fprintf (stderr, "kbd char read: %c %x\n", c, (int)c);
+fprintf (stderr, "kbd char read: %c 0x%x\n", c, (int)c);
 #endif
+
         if (c == 0x18) {
+          /* Exit */
           restore_kbd (kfd);
           restore_tty ();
           (void) putchar ((int)'\n');
           exit (0);
         }
+
         send_tty (c);
 #ifdef DEBUG
-fprintf (stderr, "sent to tty\n", c);
+fprintf (stderr, "sent to tty: %c 0x%x\n", c, (int)c);
 #endif
+
       } else if (FD_ISSET(tfd, &select_mask) ) {
 #ifdef DEBUG
 fprintf (stderr, "tty event selected\n");
@@ -111,5 +115,5 @@ fprintf (stderr, "sent to display\n", c);
  
   }
 
-  /* Unreached exit (0); */
 }
+

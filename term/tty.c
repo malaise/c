@@ -20,20 +20,20 @@
   exit (1); \
 }
 
-static struct termio kbd_mode;	
+static struct termios kbd_mode;	
 static int fd = -1;
 static char tty_spec[50];
 static int start;
-static int last;
+static unsigned int last;
 
 static void parse (const char *arg) {
-int i;
+  unsigned int i;
   last = strlen(arg);
-  if (last > (int)sizeof(tty_spec)-1) {
+  if (last > sizeof(tty_spec)-1) {
     EXIT;
   }
   strcpy (tty_spec, arg);
-  for (i=0; i<last; i++) {
+  for (i = 0; i < last; i++) {
     if (tty_spec[i] == ':') {
       tty_spec[i] = '\0';
     }
@@ -46,7 +46,7 @@ static void next (void) {
     start++;
   } while (tty_spec[start]!='\0' );
 
-  if (start == last) {
+  if ((unsigned)start == last) {
     start = -1;
   } else {
     start ++;
@@ -54,14 +54,13 @@ static void next (void) {
 
 }
 
-
-
 void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
 
   char tty_name[50];
-  struct termio mode;
+  struct termios mode;
 
   unsigned short c_flags;
+  long flags;
 
   parse (arg);
 
@@ -105,22 +104,36 @@ void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
 
   next (); if (start != -1) EXIT;
 
-  fd = open (tty_name, O_RDWR | O_NDELAY);
+  fd = open (tty_name, O_RDWR | O_NONBLOCK | O_NOCTTY);
   if (fd < 0) {
-    perror ("Error open");
+    perror ("Error open tty");
     fprintf (stderr, ">%s<\n", tty_name);
     exit(1);
   }
 
   if (flock (fd, LOCK_EX | LOCK_NB) != 0) {
-    perror ("Error flock");
+    perror ("Error flock tty");
     fprintf (stderr, "Device %s is locked.\n", tty_name);
     close (fd);
     exit(1);
   }
 
-  if (ioctl (fd, TCGETA, (char*) &mode) <0) {
-    perror ("Error ioctl get");
+  flags = fcntl (fd, F_GETFL);
+  if (flags == -1) {
+    perror ("Error fcntl getfl tty");
+    fprintf (stderr, ">%s<\n", tty_name);
+    exit(1);
+  }
+  flags = O_RDWR;
+  if (fcntl (fd, F_SETFL, flags) != 0) {
+    perror ("Error fcntl setfl tty");
+    fprintf (stderr, ">%s<\n", tty_name);
+    exit(1);
+  }
+
+
+  if (tcgetattr (fd, &mode) < 0) {
+    perror ("Error tcgetattr tty");
     restore_tty ();
     exit (1);
   }
@@ -143,8 +156,8 @@ void init_tty (const char *arg, int ctsrts, int echo, int crlf) {
   mode.c_cc[VMIN] = 1;
   mode.c_cc[VTIME] = 0;
 
-  if (ioctl (fd, TCSETA, (char*) &mode) <0) {
-    perror ("Error ioctl set");
+  if (tcsetattr (fd, TCSANOW, &mode) < 0) {
+    perror ("Error tcsetattr tty");
     restore_tty ();
     exit (1);
   }
@@ -162,25 +175,25 @@ void restore_tty (void) {
 
 void send_tty (char c) {
 
-int cr;
+  int cr;
 
   for (;;) {
     cr = (write (fd, &c, 1) >= 0);
     if (cr) return;
     if (errno != EINTR) {
-      perror ("write");
+      perror ("write tty");
       return;
     }
   }
 }
 
 void read_tty (char *c) {
-int res;
+  int res;
 
   do {
     res = read (fd, c, 1);
     if ( (res == -1)  && (errno != EINTR) )  {
-      perror ("read");
+      perror ("read tty");
     }
   } while (res != 1);
 }
@@ -191,14 +204,14 @@ int get_tty_fd(void) {
 
 
 void init_kbd (int kfd) {
-  struct termio mode;
+  struct termios mode;
 
-  if (ioctl (kfd, TCGETA, (char*) &mode) <0) {
-    perror ("Error ioctl get");
+  if (tcgetattr (kfd, &mode) < 0) {
+    perror ("Error tcgetattr kbd");
     restore_tty ();
     exit (1);
   }
-  memcpy (&kbd_mode, &mode, sizeof(struct termio));
+  memcpy (&kbd_mode, &mode, sizeof(struct termios));
   mode.c_iflag = 0;
   mode.c_oflag = 0;
   mode.c_lflag = 0;
@@ -206,8 +219,8 @@ void init_kbd (int kfd) {
   mode.c_cc[VMIN] = 1;
   mode.c_cc[VTIME] = 0;
 
-  if (ioctl (kfd, TCSETA, (char*) &mode) <0) {
-    perror ("Error ioctl set");
+  if (tcsetattr (kfd, TCSANOW, &mode) < 0) {
+    perror ("Error tcsetattr kbd");
     restore_tty ();
     exit (1);
   }
@@ -219,11 +232,9 @@ fprintf (stderr, "KBD initialised.\n");
 }
 
 void restore_kbd (int kfd) {
-  struct termio mode;
 
-  memcpy (&mode, &kbd_mode, sizeof(struct termio));
-  if (ioctl (kfd, TCSETA, (char*) &mode) <0) {
-    perror ("Error ioctl set");
+  if (tcsetattr (kfd, TCSANOW, &kbd_mode) < 0) {
+    perror ("Error tcsetattr kbd");
     restore_tty ();
     exit (1);
   }
