@@ -92,9 +92,8 @@ fprintf (stderr, "kbd char read: %c 0x%x\n", c, (int)c);
 
         send_tty (c);
 #ifdef DEBUG
-fprintf (stderr, "sent to tty: %c 0x%x\n", c, (int)c);
+fprintf (stderr, "sent to tty.\n");
 #endif
-
       } else if (FD_ISSET(tfd, &select_mask) ) {
 #ifdef DEBUG
 fprintf (stderr, "tty event selected\n");
@@ -105,7 +104,7 @@ fprintf (stderr, "tty char read: %c %x\n", c, (int)c);
 #endif
         (void) putchar ((int)c);
 #ifdef DEBUG
-fprintf (stderr, "sent to display\n", c);
+fprintf (stderr, "sent to display.\n");
 #endif
         (void) fflush (stdout);
       } else {
