@@ -1,31 +1,36 @@
 #!/bin/bash
-if [ "$1" = "" ]
-then
-  echo "Usage: `basename $0` <device> [ <speed> [ <args> ] ]"
-  exit
+function usage {
+  echo "Usage: `basename $0` <device> [ -s <speed> ] [ <args> ]" >&2
+}
+
+if [ "$1" = "" ] ; then
+  usage
+  exit 1
 fi
 arg_device=$1
 device=$1
 shift
-# device (console is cua0)
-if [ "$device" = "console" ]
+
+speed=115200
+if [ "$1" = "-s" ] ; then
+  if [ "$2" = "" ] ; then
+    usage
+    exit 1
+  fi
+  speed=$2
+  shift
+  shift
+fi
+
+
+# Device (console is cua0)
+if [ "$arg_device" = "console" ]
 then
   device=cua0
-fi
-# speed and args (default is 115200&none except for console, 9600&noctsrts)
-if [ "$1" = "" ]
-then
-  if [ "$arg_device" = "console" ]
-  then
-    speed=9600
-    args=noctsrts
-  else
-    speed=115200
-    args=$*
-  fi
+  args=noctsrts
+  speed=9600
 else
-  speed=$1
-  shift
+  args=$*
 fi
 
 echo term $device:8:N:1:$speed $args
