@@ -954,7 +954,7 @@ int main (int argc, char *argv[]) {
 
     /* Read request */
     request_len = soc_receive(client_soc, &request_message,
-                              sizeof(request_message), (proto != Tcp));
+                              sizeof(request_message), (proto != Tcp), FALSE);
 
     /* Handle Tcp disconnection */
     if ((proto == Tcp) && ( (request_len == SOC_CONN_LOST)

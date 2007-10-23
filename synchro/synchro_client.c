@@ -131,7 +131,7 @@ int main (int argc, char *argv[]) {
       }
 
       length = sizeof (synchro_msg);
-      cr = soc_receive (soc, (soc_message) &synchro_msg, length, FALSE);
+      cr = soc_receive (soc, (soc_message) &synchro_msg, length, FALSE, FALSE);
       get_time (&reply_time);
 
       if ( cr == sizeof (synchro_msg) ) {

@@ -67,7 +67,7 @@ int main (int argc, char *argv[]) {
   /* Wait for request and reply with current time */
   for (;;) {
     length = sizeof (synchro_msg);
-    cr = soc_receive (soc, (soc_message) &synchro_msg, length, FALSE);
+    cr = soc_receive (soc, (soc_message) &synchro_msg, length, FALSE, FALSE);
     if ( (cr == sizeof (synchro_msg))
       && (synchro_msg.magic_number == magic_request_value) ) {
 
