@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
+
 
 #include "get_line.h"
 #include "socket.h"
@@ -9,10 +11,11 @@ static void error(const char *msg, const char *arg)
   __attribute__ ((noreturn));
 static void error(const char *msg, const char *arg) {
   fprintf(stderr, "ERROR : %s %s\n", msg, arg);
-  fprintf(stderr, "Usage : udp_send <lan_or_host> <dest>:<port> [ <message> ]\n");
-  fprintf(stderr, "   <lan_or_host> ::= lan | host\n");
+  fprintf(stderr, "Usage : udp_send <dest_type> <dest>:<port> [ <message> ]\n");
+  fprintf(stderr, "   <dest_type> ::= lan | host\n");
+  fprintf(stderr, "   <dest> ::= <lan_or_host_name> | <lan_or_host_ip_address>\n");
   fprintf(stderr, "   <port> ::= <port_name> | <port_no>\n");
-  fprintf(stderr, "   <dest> ::= <lan_name> | <host_name> | <ip_address>\n");
+  fprintf(stderr, "Reads stdin if no <message>.\n");
   exit (1);
 }
 
@@ -27,6 +30,7 @@ int main (int argc, char *argv[]) {
   soc_token soc = init_soc;
   char buffer[1024];
   int i, res, len;
+  boolean interactive;
 
   /* Parse command line arguments */
   /* Syntax is udp_send lan/host <dest>:<port> [ <message> ] */
@@ -39,6 +43,7 @@ int main (int argc, char *argv[]) {
   } else {
     error("Invalid argument", argv[1]);
   }
+  interactive = (isatty(0) == 1);
 
   /* Locate ':' in dest:port */
   strcpy (host_name, argv[2]);
@@ -72,7 +77,7 @@ int main (int argc, char *argv[]) {
       res = soc_set_dest_host_service (soc, &host_no, port_name);
     }
   } else {
-    if (soc_str2port (host_name, &port_no) == SOC_OK) {
+    if (soc_str2port (port_name, &port_no) == SOC_OK) {
       res = soc_set_dest_name_port(soc, host_name, dest_lan, port_no);
     } else {
       res = soc_set_dest_name_service(soc, host_name, dest_lan, port_name);
@@ -95,6 +100,10 @@ int main (int argc, char *argv[]) {
     len = strlen(message);
   } else {
     /* Read from stdin */
+    if (interactive) {
+      printf ("Enter message to send (end with Ctrl-D): ");
+      fflush (stdout);
+    }
     len = 0;
     for (;;) {
       /* Read a buffer of data from stdin */
@@ -106,6 +115,9 @@ int main (int argc, char *argv[]) {
       /* Concatenate to message */
       memmove (&message[len], buffer, res);
       len += res;
+    }
+    if (interactive) {
+      printf ("\n");
     }
   }
 
