@@ -13,6 +13,7 @@
 
 int main (int argc, char *argv[]) {
 
+  timeout_t timeout;
   int timeout_ms;
   int accuracy_ms;
   soc_token soc = init_soc;
@@ -25,7 +26,7 @@ int main (int argc, char *argv[]) {
   unsigned int travel_ms;
 
   timeout_t request_time, reply_time, travel_delta;
-  timeout_t accuracy_timeout;
+  timeout_t accuracy_timeout, wait_timeout;
 
 
   if ( (argc != 2) && (argc != 3) && (argc != 4) ) {
@@ -44,6 +45,8 @@ int main (int argc, char *argv[]) {
   } else {
     timeout_ms = DEFAULT_TIMEOUT_MS;
   }
+  wait_timeout.tv_sec = timeout_ms / 1000; 
+  wait_timeout.tv_usec = (timeout_ms % 1000) * 1000;
 
   if (argc == 4) {
     accuracy_ms = atoi(argv[3]);
@@ -116,8 +119,8 @@ int main (int argc, char *argv[]) {
 
     for (;;) {
 
-
-      if (evt_wait (&fd, &read, &timeout_ms) != OK) {
+      timeout = wait_timeout;
+      if (evt_wait (&fd, &read, &timeout) != OK) {
         perror ("waiting for event");
         exit (1);
       }
@@ -180,3 +183,4 @@ int main (int argc, char *argv[]) {
     }
   }
 }
+
