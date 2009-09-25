@@ -20,12 +20,12 @@ extern void dlist_init (dlist *list, unsigned int data_size) {
 
 
 /* Is list empty */
-extern boolean dlist_is_empty (dlist *list) {
+extern boolean dlist_is_empty (const dlist *list) {
   return (list->curr == NULL);
 }
 
 /* List length is 0 or pos_from_first + pos_from_last - 1) */
-extern unsigned int dlist_length (dlist *list) {
+extern unsigned int dlist_length (const dlist *list) {
   if (list->curr == NULL) {
     return 0;
   } else {
@@ -35,7 +35,7 @@ extern unsigned int dlist_length (dlist *list) {
 
 /* Position in list, from start or from end */
 /* 0 when list is empty */
-extern unsigned int dlist_get_pos (dlist *list, boolean from_first) {
+extern unsigned int dlist_get_pos (const dlist *list, boolean from_first) {
   if (from_first) {
     return list->pos_first;
   } else {
@@ -76,10 +76,17 @@ extern void dlist_move (dlist *list, boolean forward) {
 }
 
 /* Read current (copy from list) */
-extern void dlist_read (dlist *list, void * data) {
+extern void dlist_read (const dlist *list, void * data) {
   if (list->curr == NULL) return;
   memcpy (data, list->curr->data, list->data_size);
 }
+
+/* Replace current (insert if list is empty) */
+extern void dlist_replace (const dlist *list, void * data) {
+  if (list->curr == NULL) return;
+  memcpy (list->curr->data, data, list->data_size);
+}
+
 
 /* Adjust prev and next of current to point on current */
 /* Or adjust first or last */
@@ -99,7 +106,7 @@ static void adjust (dlist *list) {
 }
 
 /* Insert after or before current (copy to list and become current) */
-extern void dlist_insert (dlist *list, void * data, boolean after_curr) {
+extern void dlist_insert (dlist *list, const void * data, boolean after_curr) {
   cell *ptr, *tmp;
 
   /* Malloc and copy */
@@ -190,7 +197,7 @@ extern void dlist_delete (dlist *list, boolean forward) {
 
 /* Delete the whole list (re-inits) */
 extern void dlist_delete_all (dlist *list) {
-  
+
   /* Iterate on all from first */
   list->curr = list->first;
   while (list->curr != NULL) {
@@ -204,5 +211,170 @@ extern void dlist_delete_all (dlist *list) {
 
   /* Reset all fields except data size */
   dlist_init (list, list->data_size);
+}
+
+/* Local absolute move */
+static void move_at (dlist *list, unsigned int offset) {
+  unsigned int i;
+
+  dlist_rewind (list, TRUE);
+  for (i = 0; i < offset; i++) {
+    dlist_move (list, TRUE);
+  }
+}
+
+/* Local swap of 2 cells */
+static void swap (dlist *list, cell *left, cell *right) {
+
+  cell *next, *prev;
+
+  prev = left->prev;
+  next = left->next;
+
+  if ( (left->next != right) && (left->prev != right) ) {
+    /* Not adjacent cells */
+    /* Exchange neighbours links */
+    if (left->prev != NULL) {
+      left->prev->next = right;
+    } else {
+      list->first = right;
+    }
+    if (left->next != NULL) {
+      left->next->prev = right;
+    } else {
+      list->last = right;
+    }
+    if (right->prev != NULL) {
+      right->prev->next = left;
+    } else {
+      list->first = left;
+    }
+    if (right->next != NULL) {
+      right->next->prev = left;
+    } else {
+      list->last = left;
+    }
+
+    /* Exchange swapped cells links to neighbours */
+    left->prev = right->prev;
+    left->next = right->next;
+    right->prev = prev;
+    right->next = next;
+
+  } else if (left->next == right) {
+    /* Left just before right */
+    /* Exchange neighbours links */
+    if (left->prev != NULL) {
+      left->prev->next = right;
+    } else {
+      list->first = right;
+    }
+    if (right->next != NULL) {
+      right->next->prev = left;
+    } else {
+      list->last = left;
+    }
+
+    /* Exchange swapped cells links to neighbours */
+    left->prev = right;
+    left->next = right->next;
+    right->prev = prev;
+    right->next = left;
+  } else if (left->prev == right) {
+    /* Left just after right */
+    /* Exchange neighbours links */
+    if (left->next != NULL) {
+      left->next->prev = right;
+    } else {
+      list->last = right;
+    }
+    if (right->prev != NULL) {
+      right->prev->next = left;
+    } else {
+      list->first = left;
+    }
+
+    /* Exchange swapped cells links to neighbours */
+    left->prev = right->prev;
+    left->next = right;
+    right->prev = left;
+    right->next = next;
+  }
+
+}
+
+
+/* Local recursive sorting */
+static void subqsort (dlist *list,
+                      const unsigned int left, const unsigned int right,
+                      less_than_func *less_than) {
+  /* Middle of the slice */
+  const unsigned int i_front = (left + right ) / 2;
+  cell *l_front;
+  /* Both halfs of the slice */
+  unsigned int i_left, i_right;
+  cell *l_left, *l_right;
+
+  i_left = left;
+  i_right = right;
+  /* Set link to frontier */
+  move_at (list, i_front);
+  l_front = list->curr;
+
+  for (;;) {
+    /* First element at left of slice and not positioned ok */
+    /*  regarding the frontier */
+    move_at (list, i_left - 1);
+    while (less_than (list->curr->data, l_front->data)) {
+      dlist_move (list, TRUE);
+    }
+    l_left = list->curr;
+    i_left = dlist_get_pos (list, TRUE);
+
+    /* Last  element a right of slice and not positioned ok */
+    /*  regarding the frontier */
+    move_at (list, i_right - 1);
+    while (less_than (l_front->data, list->curr->data)) {
+      dlist_move (list, FALSE);
+    }
+    l_right = list->curr;
+    i_right = dlist_get_pos (list, TRUE);
+
+    /* Exchange and go to next elements if not both in frontier */
+    if (i_left < i_right) {
+      swap (list, l_left, l_right);
+      i_left ++;
+      i_right --;
+    } else if (i_left == i_right) {
+      /* Go to next elements if not crossed */
+      if (i_left != right) {
+        i_left ++;
+      }
+      if (i_right != left) {
+        i_right --;
+      }
+    }
+
+    /* Leave if crossed now */
+    if (i_left > i_right) break;
+    if ( (i_left == right) && (i_right == left) ) break;
+  }
+
+  /* Sort both new slices */
+  if (left   < i_right) subqsort(list, left,   i_right, less_than);
+  if (i_left < right)   subqsort(list, i_left, right, less_than);
+
+}
+
+/* Quick sort the list according to comp function */
+extern void dlist_sort (dlist *list, less_than_func *less_than) {
+
+  unsigned int last = dlist_length (list);
+
+  if (last <= 1) {
+    return;
+  }
+  subqsort (list, 1, last, less_than);
+  dlist_rewind (list, TRUE);
 }
 

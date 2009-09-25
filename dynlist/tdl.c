@@ -3,6 +3,10 @@
 
 #include "dynlist.h"
 
+static boolean less_than (const void *l, const void *r) {
+  return (*(const int*)l < *(const int*)r);
+}
+
 int main (void) {
 
   dlist list;
@@ -29,7 +33,7 @@ int main (void) {
   printf ("Deletes the current\n");
   dlist_delete (&list, TRUE);
 
-  printf ("Pos from first: %02d List length: %02d\n", 
+  printf ("Pos from first: %02d List length: %02d\n",
           dlist_get_pos (&list, TRUE), dlist_length (&list));
 
   printf ("Reads 7 elements from the first one:");
@@ -40,7 +44,6 @@ int main (void) {
     dlist_move (&list, TRUE);
   }
   printf ("\n");
-  dlist_move (&list, FALSE);
 
   printf ("Adds the element 50 before current position and read: ");
   v = 50;
@@ -59,6 +62,15 @@ int main (void) {
   }
   printf ("\n");
 
+  printf ("Sort: ");
+  dlist_sort (&list, less_than);
+  for (;;) {
+    dlist_read (&list, &v);
+    printf (" %02d", v);
+    if (dlist_get_pos (&list, FALSE) == 1) break;
+    dlist_move (&list, TRUE);
+  }
+  printf ("\n");
 
   printf ("Delete all\n");
   dlist_delete_all (&list);
