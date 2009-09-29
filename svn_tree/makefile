@@ -26,5 +26,5 @@ LIBS_svn_tree := libutil.a
 
 include $(TEMPLATES)/c.mk
 
-CCOPT := $(CCOPT:-Werror=)
+CCOPT := $(CCOPT:-pedantic=)
 
