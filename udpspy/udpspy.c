@@ -1,3 +1,4 @@
+#include "timeval.h"
 #include "socket.h"
 #include "wait_evt.h"
 #include "util.h"
@@ -16,7 +17,7 @@ int main (const int argc, const char *argv[]) {
 
   /* Event result */
   boolean read;
-  int timeout;
+  timeout_t timeout;
   int evtfd;
 
   /* parse arguments */
@@ -41,7 +42,8 @@ int main (const int argc, const char *argv[]) {
   }
 
   /* Main loop */
-  timeout = -1;
+  timeout.tv_sec = -1;
+  timeout.tv_usec = -1;
   for (;;) {
     /* Infinite wait for events */
     if ( (res = evt_wait (&evtfd, & read, &timeout)) != OK) {
