@@ -12,9 +12,9 @@ int main (int argc, char *argv[]) {
 
   (void) setlocale(LC_ALL, "");
 
-  if ( argc < 2 ) help(argv);
+  if (argc < 2) help(argv);
   else draw (argv, argc, ONE);
-  exit(0);
+  exit (0);
 }
 
 static void help (char *str[]) {
@@ -26,8 +26,6 @@ static void help (char *str[]) {
   draw (str, ALL, ' ');
 }
 
-static void draw (char *str[], int  count, char param)
-                 __attribute__ ((noreturn));
 static void draw (char *str[], int  count, char param) {
   int j=0, i=0;
 
@@ -59,7 +57,6 @@ static void draw (char *str[], int  count, char param) {
 
   printf ("+-----------+-----+-----+-----+\n");
 
-  exit ( 0 );
 
 }
 
