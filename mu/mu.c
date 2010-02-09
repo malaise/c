@@ -536,7 +536,7 @@ static void find_loop (byte *template, unsigned length) {
 
   /* Check length */
   pos_file = file_pos (current_page, pos);
-  if (pos_file + length > file_size) {
+  if ((unsigned long)pos_file + (unsigned long)length > file_size) {
     mvprint (22, 10, "Not found !!!");
     to_erase = true;
     beep (3, 3000);

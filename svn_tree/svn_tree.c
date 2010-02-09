@@ -33,9 +33,9 @@ static boolean less_than (const void *l, const void *r) {
 }
 
 /* Check if a rev appears in REV list */
-static boolean find_rev (int node_rev, dlist *revlist) {
+static boolean find_rev (long int node_rev, dlist *revlist) {
   long int rev;
-  int low, mid, high, i;
+  unsigned int low, mid, high, i;
 
   /* By convention, an empty revlist means no citreria */
   if (dlist_is_empty (revlist)) {
@@ -120,17 +120,25 @@ int main (int argc, const char *argv[]) {
   /* CHECK STACK */
   /***************/
   debug1 (1, "Initializing");
-  /* Check that 'ulimit -s' returns "unlimited" */
+  /* Check that 'ulimit -s' returns "unlimited" or a value >= 4194304 */
   {
     FILE * pip;
     char line[1024];
+    long int ssize;
+    const long int min_ssize = 4194304;
 
     pip = popen ("ulimit -s", "r");
     fscanf (pip, "%s", line);
     fclose (pip);
     if (strcmp(line, "unlimited") != 0) {
-      error ("Stack size must be unlimited (ulimit -s 104857600)");
+      ssize = atol (line);
+      if (ssize < min_ssize) {
+        sprintf (line, "Stack size must be  at least %ld (ulimit -s)",
+                       min_ssize);
+        error (line);
+      }
     }
+
   }
   debug1 (2, "Stack OK");
 
@@ -297,7 +305,7 @@ int main (int argc, const char *argv[]) {
   /* INIT GLOBAl DATA */
   /********************/
   dlist_init (&name_list, sizeof(tag_path_type)); /* Tags' URLs */
-  dlist_init (&rev_list, sizeof(int));            /* Revison numbers of where */
+  dlist_init (&rev_list, sizeof(long int));       /* Revison numbers of where */
   dlist_init (&node_list, sizeof(node_type));     /* Nodes infos (result) */
   debug1 (2, "Data init OK");
 

@@ -1,8 +1,8 @@
 include $(HOME)/Makefiles/common.mk
 
-DLIBA := vt100
+EXES := tpcre
 
-EXES := mu
-LARGS_mu := -lncurses
+LARGS_tpcre := -lpcre
 
 include $(TEMPLATES)/c.mk
+
