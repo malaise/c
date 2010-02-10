@@ -1,7 +1,7 @@
 include $(HOME)/Makefiles/common.mk
 
 # SVN and APACHE includes and libs
-SVN := /usr
+SVN := /usr/local
 APACHE := /usr
 
 SVN_INC := $(SVN)/include/subversion-1
