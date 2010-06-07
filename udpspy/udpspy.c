@@ -36,7 +36,7 @@ int main (const int argc, const char *argv[]) {
   bind_socket (socket);
 
   /* Attach fd for reading */
-  if ( (res = evt_add_fd (fd, TRUE)) != OK) {
+  if ( (res = evt_add_fd (fd, TRUE)) != WAIT_OK) {
     trace ("evt_add_fd error", "");
     error ("cannot add fd", "");
   }
@@ -46,7 +46,7 @@ int main (const int argc, const char *argv[]) {
   timeout.tv_usec = -1;
   for (;;) {
     /* Infinite wait for events */
-    if ( (res = evt_wait (&evtfd, & read, &timeout)) != OK) {
+    if ( (res = evt_wait (&evtfd, & read, &timeout)) != WAIT_OK) {
       trace ("evt_wait error", "");
       error ("cannot wait for event", "");
     }

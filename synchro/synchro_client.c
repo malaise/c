@@ -100,7 +100,7 @@ int main (int argc, char *argv[]) {
     perror ("getting socket id");
     exit (1);
   }
-  if (evt_add_fd(fd, TRUE) != OK) {
+  if (evt_add_fd(fd, TRUE) != WAIT_OK) {
     perror("Adding fd");
     exit (1);
   }
@@ -120,7 +120,7 @@ int main (int argc, char *argv[]) {
     for (;;) {
 
       timeout = wait_timeout;
-      if (evt_wait (&fd, &read, &timeout) != OK) {
+      if (evt_wait (&fd, &read, &timeout) != WAIT_OK) {
         perror ("waiting for event");
         exit (1);
       }
