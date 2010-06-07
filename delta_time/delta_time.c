@@ -170,8 +170,7 @@ int main (const int argc, const char * argv[]) {
     end_time.tv_usec = -1;
   }
   addr_image (&lan, buff);
-  printf (buff);
-  printf (" on port %d\n", (int) port);
+  printf ("%s on port %d\n", buff, (int) port);
   /* Client initial ping request */
   if (client) {
     get_time (&start_time);
