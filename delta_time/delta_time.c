@@ -165,9 +165,9 @@ int main (const int argc, const char * argv[]) {
     incr_time (&end_time, DELAY_CLIENT_MS);
     printf ("Client mcasting at address ");
   } else {
+    wait_timeout.tv_sec = -1;
+    wait_timeout.tv_usec = -1;
     printf ("Server ready at address ");
-    end_time.tv_sec = -1;
-    end_time.tv_usec = -1;
   }
   buff[0]='\0';
   addr_image (&lan, buff);
@@ -181,15 +181,21 @@ int main (const int argc, const char * argv[]) {
       perror ("sending ping");
       error ("Sending ping request failed");
     }
-  } 
+    current_time = start_time;
+  }
 
   /*************/
   /* Main loop */
   /*************/
-  /* Init for main loop */
-  wait_timeout = end_time;
-  /* Main loop */
   for (;;) {
+    /* Client exits on timeout or goes on waiting */
+    if (client) {
+      wait_timeout = end_time;
+      res = sub_time (&wait_timeout, &current_time);
+      if (res <= 0) {
+        break;
+      }
+    }
     if (evt_wait (&fd, &for_read, &wait_timeout) != WAIT_OK) {
       perror ("waiting for event");
       error ("Waiting for events failed");
@@ -241,14 +247,6 @@ int main (const int argc, const char * argv[]) {
         error ("Sending pong request failed");
       }
     }
-    /* Client exits on timeout or goes on waiting */
-    if (client) {
-      wait_timeout = end_time;
-      res = sub_time (&wait_timeout, &current_time);
-      if (res <= 0) {
-        break;
-      }
-    }
   } /* End of main loop */
 
   /* After timeout, client puts info on servers */
@@ -257,7 +255,7 @@ int main (const int argc, const char * argv[]) {
     do {
       dlist_read (&list, &info);
       /* Get host name if possible, else dump address */
-      res = soc_host_name_of (&info.host, buff, sizeof(buff)); 
+      res = soc_host_name_of (&info.host, buff, sizeof(buff));
       if (res != SOC_OK) {
         buff[0]='\0';
         addr_image (&info.host, buff);
@@ -267,7 +265,7 @@ int main (const int argc, const char * argv[]) {
                     + time_to_double (&info.reception_time) ) / 2.0;
       remote_time = time_to_double (&info.server_time);
       printf ("Host %s is shifted by %4.03fs\n", buff, remote_time - local_time);
-      
+
       /* Done when last record has been put */
     } while (dlist_get_pos (&list, FALSE) != 1);
   }
