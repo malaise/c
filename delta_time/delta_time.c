@@ -36,7 +36,7 @@ static void addr_image (soc_host *addr, char image[]) {
   int i;
   char buf[10];
   for (i = 0; i < 4; i++) {
-    sprintf (buf, "%3d", (int)addr->bytes[i]);
+    sprintf (buf, "%d", (int)addr->bytes[i]);
     strcat (image, buf);
     if (i != 3) {
       strcat (image, ".");
@@ -169,6 +169,7 @@ int main (const int argc, const char * argv[]) {
     end_time.tv_sec = -1;
     end_time.tv_usec = -1;
   }
+  buff[0]='\0';
   addr_image (&lan, buff);
   printf ("%s on port %d\n", buff, (int) port);
   /* Client initial ping request */
@@ -259,6 +260,7 @@ int main (const int argc, const char * argv[]) {
       /* Get host name if possible, else dump address */
       res = soc_host_name_of (&info.host, buff, sizeof(buff)); 
       if (res != SOC_OK) {
+        buff[0]='\0';
         addr_image (&info.host, buff);
       }
       /* Compute (Start_time + Reception_time) / 2 */
