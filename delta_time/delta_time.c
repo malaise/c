@@ -236,7 +236,6 @@ int main (const int argc, const char * argv[]) {
       /* Server only replies pong and time to ping */
       msg.time = current_time;
       msg.ping = FALSE;
-      msg.time = start_time;
       if (soc_send (soc, (soc_message) &msg, sizeof(msg)) != SOC_OK) {
         perror ("sending pong");
         error ("Sending pong request failed");
