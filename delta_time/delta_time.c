@@ -19,8 +19,7 @@ static char prog[256];
 
 /* Prog syntax */
 static void usage (void) {
-  fprintf (stderr, "Usage: %s <mode> <imp_address> <port_num>\n", prog);
-  fprintf (stderr, "  <mode> ::= -s | -c\n");
+  fprintf (stderr, "Usage: %s <imp_address> <port_num>\n", prog);
 }
 
 /* Log error messages and exit */
@@ -60,8 +59,6 @@ typedef struct {
 
 /* THE MAIN */
 int main (const int argc, const char * argv[]) {
-  /* Mode client or server */
-  boolean client;
 
   /* Socket data */
   soc_token soc = init_soc;
@@ -97,24 +94,15 @@ int main (const int argc, const char * argv[]) {
   /* Parse arguments */
   /*******************/
   /* Check args */
-  if (argc != 4) {
+  if (argc != 3) {
     error ("Invalid arguments");
   }
-  /* Parse mode */
-  if (strcmp (argv[1], "-c") == 0) {
-    client = TRUE;
-  } else if (strcmp (argv[1], "-s") == 0) {
-    client = FALSE;
-  } else {
-    sprintf (buff, "Invalid mode %s", argv[1]);
-    error (buff);
-  }
   /* Parse IPM address and port */
-  if (soc_str2host (argv[2], &lan) != SOC_OK) {
+  if (soc_str2host (argv[1], &lan) != SOC_OK) {
     sprintf (buff, "Invalid ipm address %s", argv[2]);
     error (buff);
   }
-  if (soc_str2port (argv[3], &port) != SOC_OK) {
+  if (soc_str2port (argv[2], &port) != SOC_OK) {
     sprintf (buff, "Invalid port num %s", argv[2]);
     error (buff);
   }
@@ -157,39 +145,29 @@ int main (const int argc, const char * argv[]) {
   }
   /* Activate signal catching */
   activate_signal_handling();
-  /* Get start time, init timeout */
-  get_time (&start_time);
-  /* Client/server report ready */
-  if (client) {
-    end_time = start_time;
-    incr_time (&end_time, DELAY_CLIENT_MS);
-    printf ("Client mcasting at address ");
-  } else {
-    wait_timeout.tv_sec = -1;
-    wait_timeout.tv_usec = -1;
-    printf ("Server ready at address ");
-  }
+  /* Report starting */
   buff[0]='\0';
   addr_image (&lan, buff);
-  printf ("%s on port %d\n", buff, (int) port);
-  /* Client initial ping request */
-  if (client) {
-    get_time (&start_time);
-    msg.ping = TRUE;
-    msg.time = start_time;
-    if (soc_send (soc, (soc_message) &msg, sizeof(msg)) != SOC_OK) {
-      perror ("sending ping");
-      error ("Sending ping request failed");
-    }
-    current_time = start_time;
+  printf ("%s mcasting at address %s on port %d.\n", prog, buff, (int) port);
+  /* Init times */
+  get_time (&start_time);
+  current_time = start_time;
+  end_time = start_time;
+  incr_time (&end_time, DELAY_CLIENT_MS);
+  /* Send initial ping request */
+  msg.ping = TRUE;
+  msg.time = start_time;
+  if (soc_send (soc, (soc_message) &msg, sizeof(msg)) != SOC_OK) {
+    perror ("sending ping");
+    error ("Sending ping request failed");
   }
 
   /*************/
   /* Main loop */
   /*************/
   for (;;) {
-    /* Client exits on timeout or goes on waiting */
-    if (client) {
+    /* First step is to loop until timeout */
+    if (wait_timeout.tv_sec != -1) {
       wait_timeout = end_time;
       res = sub_time (&wait_timeout, &current_time);
       if (res <= 0) {
@@ -206,69 +184,75 @@ int main (const int argc, const char * argv[]) {
     /* Termination signal */
     if (fd == SIG_EVENT) {
       if (get_signal () == SIG_TERMINATE) {
-        printf ("Aborted.\n");
         break;
       }
     } else if (fd == NO_EVENT) {
-      /* Timeout */
-      break;
+      /* Timeout: first step ends with a dump of servers */
+      if (dlist_length(&list) != 0) {
+        dlist_rewind (&list, TRUE);
+        for (;;) {
+          dlist_read (&list, &info);
+          /* Get host name if possible, else dump address */
+          res = soc_host_name_of (&info.host, buff, sizeof(buff));
+          if (res != SOC_OK) {
+            buff[0]='\0';
+            addr_image (&info.host, buff);
+          }
+          /* Compute (Start_time + Reception_time) / 2 */
+          local_time = (time_to_double (&start_time)
+                        + time_to_double (&info.reception_time) ) / 2.0;
+          remote_time = time_to_double (&info.server_time);
+          printf ("Host %s is shifted by %4.03fs\n", buff, remote_time - local_time);
+
+          /* Done when last record has been put */
+          if (dlist_get_pos (&list, FALSE) == 1) {
+            break;
+          }
+          dlist_move (&list, TRUE);
+        }
+      }
+      /* Now entering second step: infinite timeout */
+      wait_timeout.tv_sec = -1;
+      wait_timeout.tv_usec = -1;
+      printf ("%s ready.\n", prog);
     } else if (fd != soc_fd) {
       sprintf (buff, "Invalid fd %d received", fd);
       error (buff);
-    }
-    /* Now this is the socket, read message */
-    res = soc_receive (soc, (soc_message) &msg, sizeof(msg), TRUE, FALSE);
-    if (res < 0) {
-      perror ("reading from socket");
-      error ("Reading message failed");
-    } else if (res != sizeof(msg)) {
-      sprintf (buff, "Invalid size received, expected %d, got %d",
-                     (int)sizeof(msg), res);
-      error (buff);
-    }
-    get_time (&current_time);
-    /* Client stand server different behaviour */
-    if (client && !msg.ping) {
-      /* Client stores the address and time of server, if pong */
-      if (soc_get_dest_host (soc, &(info.host)) != SOC_OK) {
-        perror ("getting dest host");
-        error ("Getting server address failed");
+    } else {
+      /* Now this is the socket, read message */
+      res = soc_receive (soc, (soc_message) &msg, sizeof(msg), TRUE, FALSE);
+      if (res < 0) {
+        perror ("reading from socket");
+        error ("Reading message failed");
+      } else if (res != sizeof(msg)) {
+        sprintf (buff, "Invalid size received, expected %d, got %d",
+                       (int)sizeof(msg), res);
+        error (buff);
       }
-      info.server_time = msg.time;
-      info.reception_time = current_time;
-      dlist_insert (&list, &info, TRUE);
+      get_time (&current_time);
+      /* Client and server different behaviours */
+      if ((wait_timeout.tv_sec != -1) && !msg.ping) {
+        /* First step: store the address and time of server, if pong */
+        if (soc_get_dest_host (soc, &(info.host)) != SOC_OK) {
+          perror ("getting dest host");
+          error ("Getting server address failed");
+        }
+        info.server_time = msg.time;
+        info.reception_time = current_time;
+        dlist_insert (&list, &info, TRUE);
 
-    } else if ((!client) && msg.ping) {
-      /* Server only replies pong and time to ping */
-      msg.time = current_time;
-      msg.ping = FALSE;
-      if (soc_send (soc, (soc_message) &msg, sizeof(msg)) != SOC_OK) {
-        perror ("sending pong");
-        error ("Sending pong request failed");
+      } else if ( (wait_timeout.tv_sec == -1) && msg.ping) {
+        /* Second step: reply pong and time to ping */
+        msg.time = current_time;
+        msg.ping = FALSE;
+        if (soc_send (soc, (soc_message) &msg, sizeof(msg)) != SOC_OK) {
+          perror ("sending pong");
+          error ("Sending pong request failed");
+        }
       }
     }
   } /* End of main loop */
 
-  /* After timeout, client puts info on servers */
-  if (client && dlist_length(&list) != 0) {
-    dlist_rewind (&list, TRUE);
-    do {
-      dlist_read (&list, &info);
-      /* Get host name if possible, else dump address */
-      res = soc_host_name_of (&info.host, buff, sizeof(buff));
-      if (res != SOC_OK) {
-        buff[0]='\0';
-        addr_image (&info.host, buff);
-      }
-      /* Compute (Start_time + Reception_time) / 2 */
-      local_time = (time_to_double (&start_time)
-                    + time_to_double (&info.reception_time) ) / 2.0;
-      remote_time = time_to_double (&info.server_time);
-      printf ("Host %s is shifted by %4.03fs\n", buff, remote_time - local_time);
-
-      /* Done when last record has been put */
-    } while (dlist_get_pos (&list, FALSE) != 1);
-  }
 
   /* Clean - Close */
   dlist_delete_all (&list);
