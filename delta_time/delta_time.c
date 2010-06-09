@@ -19,7 +19,7 @@ static char prog[256];
 
 /* Prog syntax */
 static void usage (void) {
-  fprintf (stderr, "Usage: %s <imp_address> <port_num>\n", prog);
+  fprintf (stderr, "Usage: %s <imp_address>:<port_num>\n", prog);
 }
 
 /* Log error messages and exit */
@@ -82,6 +82,7 @@ int main (const int argc, const char * argv[]) {
   boolean for_read;
   char buff[256];
   int res;
+  char *index;
 
   /*********/
   /* Start */
@@ -94,16 +95,23 @@ int main (const int argc, const char * argv[]) {
   /* Parse arguments */
   /*******************/
   /* Check args */
-  if (argc != 3) {
-    error ("Invalid arguments");
+  if (argc != 2) {
+    error ("Invalid argument");
   }
   /* Parse IPM address and port */
-  if (soc_str2host (argv[1], &lan) != SOC_OK) {
-    sprintf (buff, "Invalid ipm address %s", argv[2]);
+  strcpy (buff, argv[1]);
+  index = strstr (buff, ":");
+  if (index == NULL) {
+     error ("Invalid argument");
+  }
+  *index = '\0';
+  index++;
+  if (soc_str2host (buff, &lan) != SOC_OK) {
+    sprintf (buff, "Invalid ipm address %s", buff);
     error (buff);
   }
-  if (soc_str2port (argv[2], &port) != SOC_OK) {
-    sprintf (buff, "Invalid port num %s", argv[2]);
+  if (soc_str2port (index, &port) != SOC_OK) {
+    sprintf (buff, "Invalid port num %s", index);
     error (buff);
   }
 
