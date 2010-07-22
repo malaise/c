@@ -26,6 +26,7 @@
 #include <sys/shm.h>
 #include <signal.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include "sig_util.h"
 
@@ -56,11 +57,19 @@ static unsigned long getul (const char *str, const char *msg) {
     return result;
 }
 
+static void usage (void) {
+    printf ("Usage: shm [ <basic_size> [ <address> ] ]\n");
+    printf ("  By default (no arg) gets first segment of size 1\n");
+    printf ("   then following segements of size 1.\n");
+    printf ("  With a size, get a segment of this size, either\n");
+    printf ("   to OS defined or to provided address.\n");
+}
+
 
 int main(int argc, char *argv[]) {
     char *addr, *addr0, *addr1, *addr2;
     unsigned long tmp_addr;
-    int shmid0, shmid2;
+    int shmid2;
     int interval;
     int valid_shmaddr = 0;
     size_t size0;
@@ -69,8 +78,16 @@ int main(int argc, char *argv[]) {
 
     size0 = 0;
     addr = NULL;
+    if (argc == 2) {
+      if ( (strcmp (argv[1], "-h") == 0)
+        || (strcmp (argv[1], "--help") == 0 ) ) {
+        usage();
+        exit (1);
+      }
+    }
     if (argc > 3) {
-        printf ("Too many arguments. Supported is [ <basic_size> [ <address> ] ]\n");
+        printf ("Too many arguments\n");
+        usage();
         exit(1);
     } else if (argc >= 2) {
         size0 = getul (argv[1], "<basic_size>");
@@ -79,37 +96,33 @@ int main(int argc, char *argv[]) {
           addr = (char*) tmp_addr;
         }
     } else {
+      addr = 0;
     }
+    (void) set_handler (SIGINT, clean_up, (void *) NULL);
+    (void) set_handler (SIGTERM, clean_up, (void *) NULL);
 
     if (size0 != 0) {
-        if ((shmid0 = shmget(10, size0, IPC_CREAT | IPC_EXCL | 0777)) < 0) {
+        if ((shmid1 = shmget(10, size0, IPC_CREAT | IPC_EXCL | 0777)) < 0) {
             perror("Getting basic shm segment");
             ok = 0;
         }
-        if ((addr0 = (char *)shmat(shmid0, addr, 0)) == (char *)-1) {
+        if ((addr0 = (char *)shmat(shmid1, addr, 0)) == (char *)-1) {
             perror("Attaching basic shm segment");
             ok = 0;
         }
-        if (shmdt(addr0) < 0) {
-            perror("Detaching basic shm segment");
-            ok = 0;
-        }
 
-        if (shmctl(shmid0, IPC_RMID, NULL) < 0) {
-            perror("Removing basic shm segment");
-            ok = 0;
-        }
         if (! ok) {
             exit (1);
         } else {
-            printf("Basic shared memory segment (size 0x%lx) at address: %p\n\n",
+            printf("Basic shared memory segment (size 0x%lx) at address: %p\n",
                    (unsigned long) size0, addr0);
+            printf ("Hit Ctrl C to clean\n");
+            while (TRUE) {
+                sleep (1);
+            }
         }
-        exit (0);
     }
 
-    (void) set_handler (SIGINT, clean_up, (void *) NULL);
-    (void) set_handler (SIGTERM, clean_up, (void *) NULL);
 
     if ((shmid1 = shmget(10, 1, IPC_CREAT | IPC_EXCL | 0777)) < 0) {
         perror("Getting first shm segment");
@@ -171,7 +184,7 @@ int main(int argc, char *argv[]) {
         printf("Decreasing\n");
     }
 
-    printf ("Hit Return ");
+    printf ("Hit Return for a dump of all addresses ");
     (void) getchar();
 
     printf("\nThe following valid shared memory addresses were also found:\n");
