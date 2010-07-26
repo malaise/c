@@ -112,11 +112,11 @@ static const char * progname (void) {
 
 /* Display program usage */
 static void usage (void) {
-  fprintf(stderr, "Usage: %s  <protocol>", progname());
+  fprintf(stderr, "Usage: %s  <protocol>\n", progname());
   fprintf(stderr, " <protocol> ::= <udp> | <tcp> | <ipm>\n");
   fprintf(stderr, " <udp>      ::= -u <port>\n");
   fprintf(stderr, " <tcp>      ::= -t <port>\n");
-  fprintf(stderr, " <ipm>      ::= -m <port>@<lan>\n");
+  fprintf(stderr, " <ipm>      ::= -m <lan>:<port>\n");
   fprintf(stderr, " <port>     ::= <port_num> | <port_nane>\n");
   fprintf(stderr, " <lan>      ::= <lan_num> | <lan_name>\n");
 }
@@ -525,11 +525,11 @@ int main (int argc, char *argv[]) {
   soc_token service_soc = NULL;
   soc_token client_soc = NULL;
   typedef enum {None, Udp, Tcp, Ipm} proto_list;
-  int i, arobase;
+  int i, j, k, separator;
   proto_list proto;
   int port_no;
   char *port_name;
-  char *lan;
+  char *lan_name;
   int nfds;
   fd_set saved_mask, select_mask;
   int service_fd, client_fd;
@@ -542,7 +542,7 @@ int main (int argc, char *argv[]) {
   report_message_t report;
   request_message_t request_message;
   soc_length        request_len;
-  soc_host          request_host;
+  soc_host          request_host, lan_no;
   soc_port          request_port;
 
 
@@ -583,31 +583,61 @@ int main (int argc, char *argv[]) {
   /* Set port_name */
   port_name = malloc(strlen(argv[2])+1);
   strcpy (port_name, argv[2]);
-  port_no = atoi(port_name);
 
   /* Decode ipm address: <port>@<lan>:* One unique '@', not first nor last */
   if (proto == Ipm) {
-    arobase = 0;
+    separator = 0;
     for (i = 0; i < (signed)strlen(argv[2]); i++) {
-      if (port_name[i] == '@') {
-        if (arobase != 0) {
-          /* Several arobase: error */
-          arobase = 0;
+      if (port_name[i] == ':') {
+        if (separator != 0) {
+          /* Several separator: error */
+          separator = 0;
           break;
         }
-        arobase = i;
+        separator = i;
       }
     }
-    /* Check arobase is found not last */
-    if (arobase == (signed)strlen(port_name) - 1) arobase = 0;
-    if (arobase == 0) {
+    /* Check separator is found not last */
+    if (separator == (signed)strlen(port_name) - 1) separator = 0;
+    if (separator == 0) {
       fatal("Invalid ipm address: ", port_name);
       usage();
       exit(FATAL_ERROR_EXIT_CODE);
     }
-    lan = &port_name[arobase+1];
-    port_name[arobase] = '\0';
+    lan_name = port_name;
+    port_name[separator] = '\0';
+    port_name += separator + 1;
+    /* See if lan name or num */
+    separator = -1;
+    j = 0;
+    k = (signed) strlen(lan_name);
+    for (i = 0; i < k; i++) {
+      if (lan_name[i] == '.') {
+        /* Separator between bytes */
+        lan_name[i] = '\0';
+        lan_no.bytes[j] = (byte) atoi (&lan_name[separator+1]);
+        separator = i;
+        j++;
+      } else if ( (lan_name[i] < '0') || (lan_name[i] > '9') ) {
+        /* Not a byte */
+        separator = -1;
+        break;
+      }
+    }
+    if (separator != -1) {
+      /* Last byte */
+      lan_no.bytes[j] = (byte) atoi (&lan_name[separator+1]);
+      for (i = 0; i<= 3; i++) {
+        if (lan_no.bytes[i] == 0) {
+          separator = -1;
+        }
+      }
+    }
+    if (separator != -1) {
+      lan_name = NULL;
+    }
   }
+  port_no = atoi(port_name);
 
   /* Create the socket */
   res = soc_open(&service_soc,
@@ -622,20 +652,40 @@ int main (int argc, char *argv[]) {
   /* Set IPM LAN */
   if (proto == Ipm) {
     if (port_no <= 0) {
-      res = soc_set_dest_name_service(service_soc, lan, TRUE, port_name);
-      if (res != SOC_OK) {
-        perror("setting socket dest lan name with port name");
-        terror("soc_set_dest_name_service", res);
-        fatal("Cannot set ipm lan to: ", argv[2]);
-        exit (FATAL_ERROR_EXIT_CODE);
+      if (lan_name != NULL) {
+        res = soc_set_dest_name_service(service_soc, lan_name, TRUE, port_name);
+        if (res != SOC_OK) {
+          perror("setting socket dest lan name with port name");
+          terror("soc_set_dest_name_service", res);
+          fatal("Cannot set ipm lan to: ", argv[2]);
+          exit (FATAL_ERROR_EXIT_CODE);
+        }
+      } else {
+        res = soc_set_dest_host_service(service_soc, &lan_no, port_name);
+        if (res != SOC_OK) {
+          perror("setting socket dest lan num with port name");
+          terror("soc_set_dest_host_service", res);
+          fatal("Cannot set ipm lan to: ", argv[2]);
+          exit (FATAL_ERROR_EXIT_CODE);
+        }
       }
     } else {
-      res = soc_set_dest_name_port (service_soc, lan, TRUE, port_no);
-      if (res != SOC_OK) {
-        perror("setting socket dest lan name with port no");
-        terror("soc_set_dest_name_port", res);
-        fatal("Cannot set ipm lan to: ", argv[2]);
-        exit (FATAL_ERROR_EXIT_CODE);
+      if (lan_name != NULL) {
+        res = soc_set_dest_name_port (service_soc, lan_name, TRUE, port_no);
+        if (res != SOC_OK) {
+          perror("setting socket dest lan name with port no");
+          terror("soc_set_dest_name_port", res);
+          fatal("Cannot set ipm lan to: ", argv[2]);
+          exit (FATAL_ERROR_EXIT_CODE);
+        }
+      } else {
+        res = soc_set_dest_host_port (service_soc, &lan_no, port_no);
+        if (res != SOC_OK) {
+          perror("setting socket dest lan num with port no");
+          terror("soc_set_dest_host_port", res);
+          fatal("Cannot set ipm lan to: ", argv[2]);
+          exit (FATAL_ERROR_EXIT_CODE);
+        }
       }
     }
   }
