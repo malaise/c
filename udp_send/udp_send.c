@@ -84,7 +84,17 @@ int main (int argc, char *argv[]) {
     }
   }
   if (res != SOC_OK) {
-      error("Setting destination", soc_error(res));
+    error("Setting destination", soc_error(res));
+  }
+
+  /* Link */
+  if (soc_str2port (port_name, &port_no) == SOC_OK) {
+    res = soc_link_port(soc, port_no);
+  } else {
+    res = soc_set_dest_host_service (soc, &host_no, port_name);
+  }
+  if (res != SOC_OK) {
+    error("Linking to port", soc_error(res));
   }
 
   /* Build or read message */
@@ -126,6 +136,20 @@ int main (int argc, char *argv[]) {
   if (res != SOC_OK) {
       error("Sending message", soc_error(res));
   }
+
+  /* Receive */
+  res = soc_set_blocking (soc, FALSE);
+  sleep (1);
+  for (i = 0; i < 10; i++) {
+    res = soc_receive (soc, message, (soc_length)sizeof(message), TRUE, FALSE);
+    if (res > 0) {
+      message[res] = '\0';
+      printf ("-->%s<\n", message);
+    } else {
+      break;
+    }
+  }
+
   exit (0);
 }
 
