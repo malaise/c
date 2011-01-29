@@ -2518,7 +2518,7 @@ Void F_check(precision, val1) int precision; Long_double val1; {
 		if (sizeof(double) == sizeof(Long_double)) {
 			/* Assume they're the same, and use non-stdc format */
 			/* This is for stdc compilers using non-stdc libraries */
-			printf("%.*fe%d, bit pattern:\n    ", precision, rem, e);
+			printf("%.*Lfe%d, bit pattern:\n    ", precision, rem, e);
 		} else {
 			/* It had better support Lfe then */
 			printf("%.*Lfe%d, bit pattern:\n    ", precision, rem, e);
