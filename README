@@ -1,0 +1,68 @@
+These are my C libraries and programs.
+The compilation requires the Makefiles project to be installed.
+Because some library sources are in fact links to sources in the ada
+project (ada/c) this project is required too. These sources are tagged (A).
+Interesting directories are tagged (*).
+
+Libraries:
+boolean(A*)      : Boolean type definition
+socket(A*)       : Socket (TCP/UDP/IPM) blocking or not
+socket_evt(A)    : Socket with Fd declarations to wait_evt
+timeval(A*)      : Operations on struct timeval
+wait_evt(A*)     : Signal hadling and select on Fds
+adjtime          : System time adjustment
+dynlist(*)       : Generic dynamic list
+get_line         : Get lines of text from file
+mutex            : Pthread mutex
+rusage           : Unix resource usage
+sem_util         : Semaphore operations
+sig_util         : Signal management
+vt100            : Console emulator
+
+Programs:
+16_unali         : 10 base to 16 base conversion
+asc              : ASCII codes
+ask              : Get answer and convert to lower/upper
+byte_swapping    : Puts the bytes of a 32 bits integer
+catlock          : Cat a file or text to a locked file
+cirtail          : Circular file (of logs)
+delay            : Wait a bit
+delta_time       : Delta of system time between hosts
+dos2unix         : Dos <-> Unix text conversion (CrLf <-> Lf)
+dt               : Timeval seconds to date conversion
+enquire          : Analyze number management of libc and math
+forker           : Forks processes according to udp/tcp requests
+formfeed         : Issue a formfeed character
+fread_float      : Read a float at a given offset from a binary file
+gettimeofdays    : Performance measurement of gettimeofday
+gorgy            : Simulator of Gorgy clock (udp or serial)
+html2ascii       : Remove html markers
+init_so          : Test shared library initialization
+ipm              : Send a message to an IPM address
+ipx              : Integer representation of an IP address
+locale           : Ascii table depending on current locale
+localtime        : Display local time
+mallocer         : Check malloc reentrance
+man2file         : Convert a man file into text file
+mu(*)            : Binary file editor
+name_of          : Host <-> IP address resolver
+pause            : Test pause system call
+pcre             : Test pcre install and version
+pcrypt           : Test crypt command
+Poing            : UDP ping pong
+putvar           : Getenv
+semctl           : Semaphore control
+shm              : List available shared memory addresses
+status           : Dependancy status of files (like make)
+substit          : String substitutions in files
+svn_tree         : Analyse subversion tree (tags/branches)
+synchro          : Hosts synchronization utilities
+tcpdump          : Call tcpdump command and format its output
+term             : Terminal emulator on serial line
+time_spy         : Udp ping pong to check host time alignment
+t_malloc         : Malloc tester
+t_time           : Clock tick evaluation
+udpspy(*)        : Catch and put UDP/IPM packets
+udp_send         : Sent UDP packets
+unlink           : Unkink (remove) a file
+
