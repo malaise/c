@@ -10,7 +10,7 @@ int main(void) {
   for (i = 0; i < 10; i++) {
     t1.tv_sec = i;
     t1.tv_usec = 0;
-    for (j=0; j<100; j++)
+    for (j = 0; j < 100; j++)
       if (adjtime_call(&t1, &t2) == -1)
         exit(0);
     printed_delta = t2.tv_sec + (float) t2.tv_usec / 1000000.0;
@@ -21,7 +21,7 @@ int main(void) {
   for (i = -10; i <= 0; i++) {
     t1.tv_sec = i;
     t1.tv_usec = 0;
-    for (j=0; j<100; j++)
+    for (j = 0; j < 100; j++)
       if (adjtime_call(&t1, &t2) == -1)
         exit(0);
     printed_delta = t2.tv_sec + (float) t2.tv_usec / 1000000.0;
@@ -29,3 +29,4 @@ int main(void) {
   }
   exit(0);
 }
+

@@ -112,7 +112,7 @@ char *argv[];
     }
 
     /* Convert time structure in a string */
-    date = ctime ( (time_t*) &(block.time.tv_sec) );
+    date = ctime (&(block.time.tv_sec) );
     /* Printed_date[0..3] <- year */
     (void) strncpy (&(printed_date[0]), &(date[20]), 4);
     printed_date[4] = ' ';
@@ -147,7 +147,7 @@ char *argv[];
     if (block.pr_size != -1) {
       (void) printf ("Virtual size            (8K page) %9ld", block.pr_size);
       if ( i != 1 ) {
-        (void) printf ("    delta %9d", (int)(block.pr_size - old_block.pr_size));
+        (void) printf ("    delta %9ld", (block.pr_size - old_block.pr_size));
       }
       (void) printf ("\n");
     }
@@ -241,7 +241,7 @@ char *argv[];
     }
     (void) printf ("\n");
 
-    (void) printf ("User time ................ %9d.%06d s", (int)block.usage.ru_utime.tv_sec,
+    (void) printf ("User time ................ %9ld.%06d s", block.usage.ru_utime.tv_sec,
                                                             (int)block.usage.ru_utime.tv_usec);
     if ( i != 1 ) {
       val_delta1 = to_float(&block.usage.ru_utime) - to_float(&old_block.usage.ru_utime);
@@ -251,7 +251,7 @@ char *argv[];
     (void) printf ("\n");
 
     /* System and user time */
-    (void) printf ("Sys  time ................ %9d.%06d s", (int)block.usage.ru_stime.tv_sec,
+    (void) printf ("Sys  time ................ %9ld.%06d s", block.usage.ru_stime.tv_sec,
                                                             (int)block.usage.ru_stime.tv_usec);
     if ( i != 1 ) {
       val_delta2 = to_float(&block.usage.ru_stime) - to_float(&old_block.usage.ru_stime);
@@ -268,7 +268,7 @@ char *argv[];
     (void) printf ("\n");
 
     sum (&block.usage.ru_utime, &block.usage.ru_stime, &sum_time);
-    (void) printf ("Total cpu time ........... %9d.%06d s", (int)sum_time.tv_sec, (int)sum_time.tv_usec);
+    (void) printf ("Total cpu time ........... %9ld.%06d s", sum_time.tv_sec, (int)sum_time.tv_usec);
     if ( i != 1 ) {
       (void) printf ("  delta %11.6f s  percentage %10.6f %%\n",
        val_delta1 + val_delta2, (val_delta1 + val_delta2) / time_delta * 100.0);

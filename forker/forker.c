@@ -72,7 +72,7 @@ static char *date_str (void) {
   static char printed_date[50];
 
   gettimeofday (&time, NULL);
-  tm_date_p = gmtime( (time_t*) &(time.tv_sec) );
+  tm_date_p = gmtime(&(time.tv_sec));
   sprintf (printed_date, "%04d/%02d/%02d %02d:%02d:%02d.%03ld",
         (tm_date_p->tm_year)+1900, (tm_date_p->tm_mon)+1, tm_date_p->tm_mday,
         tm_date_p->tm_hour, tm_date_p->tm_min, tm_date_p->tm_sec,

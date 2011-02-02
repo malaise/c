@@ -68,7 +68,7 @@ static void decode_and_synchro (void) {
 
     /* Print delta */
     (void) sub_time (&new_time, &curr_time);
-    printf ("Synchro %d.%06d s\n", (int)new_time.tv_sec, (int)new_time.tv_usec);
+    printf ("Synchro %ld.%06d s\n", new_time.tv_sec, (int)new_time.tv_usec);
     exit(0);
 }
 

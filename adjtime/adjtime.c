@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
   if (argc == 2) {
     p_delta = &delta;
     sscanf (argv[1], "%f", &printed_delta);
-    delta.tv_sec = (int)printed_delta;
+    delta.tv_sec = (time_t)printed_delta;
     delta.tv_usec = (printed_delta - (float) delta.tv_sec) * 1000000;
     printf ("adjtime (%d.%06d)\n", (int)delta.tv_sec, abs((int)delta.tv_usec));
   } else {

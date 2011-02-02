@@ -157,7 +157,7 @@ int main (int argc, char *argv[]) {
           incr_time (&synchro_msg.server_time, travel_ms / 2);
 
           (void) sub_time (&reply_time, &synchro_msg.server_time);
-          printf ("Synchro %d.%06d s\n", (int)reply_time.tv_sec,
+          printf ("Synchro %ld.%06d s\n", reply_time.tv_sec,
                                          (int)reply_time.tv_usec);
 
           if (settimeofday (&synchro_msg.server_time, NULL) < 0) {

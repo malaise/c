@@ -23,7 +23,7 @@ int gorgy_decode (char frame[], struct timeval *p_new_time, char *p_precision) {
     if (new_time_secs == (time_t)-1) {
         return (-1);
     }
-    p_new_time->tv_sec = (int) new_time_secs;
+    p_new_time->tv_sec = new_time_secs;
     p_new_time->tv_usec = 0;
 
     return (0);

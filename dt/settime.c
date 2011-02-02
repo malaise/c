@@ -82,7 +82,7 @@ int main (int argc, char *argv[]) {
   if ( (tms.tm_sec < 0) || (tms.tm_sec > 59) ) error();
 
   /* Make tv_secs */
-  tv.tv_sec = (int)mktime(&tms);
+  tv.tv_sec = mktime(&tms);
   if (tv.tv_sec == -1) {
     perror("mktime");
     error();

@@ -57,7 +57,7 @@ static void decode_and_synchro (void) {
   }
 
   /* For dating report messages */
-  curr_time_str = ctime((time_t*) &curr_time.tv_sec);
+  curr_time_str = ctime(&curr_time.tv_sec);
   /* Skip last \n */
   curr_time_str[strlen(curr_time_str)-1] = '\0';
 
@@ -138,7 +138,7 @@ static void sig_handler(int signum __attribute__ ((unused)) ) {
     }
 
     /* For dating report messages */
-    curr_time_str = ctime((time_t*) &curr_time.tv_sec);
+    curr_time_str = ctime(&curr_time.tv_sec);
     /* Skip last \n */
     curr_time_str[strlen(curr_time_str)-1] = '\0';
 

@@ -127,8 +127,8 @@ static void format_time (timeout_t *p_time) {
   char yyyy[5], mm[3], dd[3], nnn[4], hh[3], mn[2], ss[2];
   char *yy = &yyyy[2];
 
-  date_str = ctime ( (time_t*) &(p_time->tv_sec));
-  date_struct = gmtime ( (time_t*) &(p_time->tv_sec));
+  date_str = ctime (&(p_time->tv_sec));
+  date_struct = gmtime (&(p_time->tv_sec));
 
   strncpy (yyyy, &date_str[20], 4);
   yyyy[4] = NUL;

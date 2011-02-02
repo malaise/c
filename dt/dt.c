@@ -21,22 +21,22 @@ static int to_int(char *str) {
 
   r = atoi(str);
   if (r == 0) {
-    for (i = 0; (unsigned int)i < strlen(str) ; i ++) {
+    for (i = 0; (unsigned)i < strlen(str) ; i++) {
       if (str[i] != '0') return -1;
     }
   }
   return (r);
 }
 
-static void printd (int sec) {
+static void printd (time_t sec) {
   struct tm *tm_date_p;
   /* String of the date printed : year month day hours:min:sec */
   char printed_date [133];
 
-  tm_date_p = gmtime( (time_t*) &(sec) );
+  tm_date_p = gmtime(&sec);
   if (tm_date_p == (struct tm*)NULL) {
     perror("gmtime");
-    fprintf (stderr, "Cannot convert %d seconds in date. Abort.\n", sec);
+    fprintf (stderr, "Cannot convert %ld seconds in date. Abort.\n", sec);
     exit (1);
   }
 
@@ -45,7 +45,7 @@ static void printd (int sec) {
       tm_date_p->tm_mday, (tm_date_p->tm_mon)+1, (tm_date_p->tm_year)+1900,
       tm_date_p->tm_hour, tm_date_p->tm_min, tm_date_p->tm_sec);
 
-  printf ("%d secs -> %s GMT\n", sec, printed_date);
+  printf ("%ld secs -> %s GMT\n", sec, printed_date);
 }
 
 int main(int argc, char *argv[]) {
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
   } else if (argc == 2) {
     /* One arg : either secs (digits) or hh:mm:ss */
     digits = 1;
-    for (i = 0; (unsigned int)i < strlen(argv[1]); i++) {
+    for (i = 0; (unsigned)i < strlen(argv[1]); i++) {
       if (!isdigit(argv[1][i])) {
         /* Not a digit : so this might be hh:mm:ss (check later on) */
         digits = 0;
