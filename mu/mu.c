@@ -322,7 +322,7 @@ static void display_data (unsigned short p, boolean hexa, byte b) {
     if ( (b > 0x1F) && (b < 0x7F) )
       cprintf("%c", b);
     else
-      cprintf(unprintable);
+      cprintf("%s", unprintable);
   }
 }
 
