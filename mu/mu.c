@@ -9,6 +9,7 @@
 /* 2.7 | 19990325 | P. Malaise | Bold->norm does not erase all the characater */
 /* 2.8 | 19990711 | P. Malaise | Main returns int                             */
 /* 2.9 | 20000127 | P. Malaise | Fix many warnings                            */
+/* 2.A | 20110329 | P. Malaise | Add getenv of unprintable character          */
 /*----------------------------------------------------------------------------*/
 #include <fcntl.h>
 #include <errno.h>
@@ -20,7 +21,7 @@
 
 #include "vt100.h"
 
-#define TITLE "Malaise utilities - V2.9 -->"
+#define TITLE "Malaise utilities - V2.A -->"
 #define USAGE "Usage : mu [-r] file\n"
 
 #define ABORT(str) (printf ("%s\n", str), exit(1))
@@ -29,6 +30,10 @@
 
 typedef enum {true=1, false=0} boolean;
 typedef unsigned char byte;
+
+/* Char for unprintable code */
+char default_unprintable='~';
+char *unprintable=&default_unprintable;
 
 /* File name and descriptor */
 static char *file_name;
@@ -78,14 +83,14 @@ static void mvprint (int x, int y, const char chaine1[]) {
  * static void mvprints (int x, int y, short num) {
  *   char str[9];
  *   short l = 0;
- * 
+ *
  *   if (num < 0)   {str[l ++] = '-'; num = - num;}
  *   if (num > 9999) str[l ++] = (num / 10000) + 48;
  *   if (num > 999)  str[l ++] = ((num % 10000)/ 1000) + 48;
  *   if (num > 99)   str[l ++] = ((num % 1000)/ 100) + 48;
  *   if (num > 9)    str[l ++] = ((num % 100) / 10) + 48;
  *   str[l ++] = (num % 10) + 48;
- * 
+ *
  *   str[l] = '\0';
  *   mvprint (x, y, str);
  * }
@@ -317,7 +322,7 @@ static void display_data (unsigned short p, boolean hexa, byte b) {
     if ( (b > 0x1F) && (b < 0x7F) )
       cprintf("%c", b);
     else
-      cprintf(".");
+      cprintf(unprintable);
   }
 }
 
@@ -423,10 +428,10 @@ static char get_asc (void) {
 static boolean confirm (char yes, char no) {
   char car;
 
-  yes = toupper(yes);
-  no = toupper(no);
+  yes = (char)toupper((int)yes);
+  no = (char)toupper((int)no);
   do {
-    car = toupper(get_asc());
+    car = (char)toupper((int)get_asc());
   } while ( (car != yes) && (car != no) && ((int)car != 20) );
   return (car == yes);
 }
@@ -437,8 +442,7 @@ static boolean confirm (char yes, char no) {
 
 static void goto_page (void) {
   char str[STR_PAGE_LEN], car;
-  int ii;
-  unsigned int i;
+  int i, ii;
 
   write_modif ();
 
@@ -449,7 +453,7 @@ static void goto_page (void) {
 
   i = 0;
 
-  for (;;) {
+  for (; ;) {
     gotoxy (22, 59 + i);
     car = get_asc();
     if (car == 13) {
@@ -482,7 +486,7 @@ static void goto_page (void) {
   str[i] = '\0';
   i = atoi (str);
 
-  if ( (i >= 1) && (i <= last_page) ) {
+  if ( (i >= 1) && ((unsigned int)i <= last_page) ) {
     current_page = i;
     new_page ();
 
@@ -529,10 +533,10 @@ static void find_loop (byte *template, unsigned length) {
   unsigned short pos_sav;
 
   /* Pos_file is the index in file (0 .. size-1) of read_str[0] */
-  unsigned long pos_file, file_index;
+  long pos_file, file_index;
   byte read_str[(STR_FIND_LEN / 3) * 2];
-  unsigned curi;
-  unsigned u;
+  int curi;
+  int i;
 
   /* Check length */
   pos_file = file_pos (current_page, pos);
@@ -551,9 +555,9 @@ static void find_loop (byte *template, unsigned length) {
 
   /* Read first bloc */
   lseek (file_des, pos_file, SEEK_SET);
-  for (u = 0, file_index = pos_file; u < length; u ++, file_index ++) {
-    read_str[u] = read_byte(file_index);
-    read_str[length + u] = read_str[u];
+  for (i = 0, file_index = pos_file; (unsigned)i < length; i ++, file_index ++) {
+    read_str[i] = read_byte(file_index);
+    read_str[length + i] = read_str[i];
   }
   curi = 0;
 
@@ -589,7 +593,7 @@ static void find_loop (byte *template, unsigned length) {
     }
 
     /* Check length */
-    if (file_index >= file_size) {
+    if ((unsigned long)file_index >= file_size) {
       current_page = page_sav;
       pos = pos_sav;
       new_page ();
@@ -609,7 +613,8 @@ static void find_loop (byte *template, unsigned length) {
     file_index ++;
     pos_file ++;
     curi ++;
-    if (curi == length) curi = 0;
+    if ((unsigned)curi == length) curi = 0;
+
   }
 
 }
@@ -625,7 +630,6 @@ static void find_seq (void) {
   byte b;
   int i, j, val, valf, l, ii;
   int llength;
-  unsigned int u;
 
   /* Save */
   write_modif();
@@ -852,8 +856,8 @@ static void find_seq (void) {
   if (!abort) {
     /* Save for search */
     length = llength;
-    for (u = 0; u < length; u ++) {
-      strf[u] = (byte) to_val (strh[3 * u]) * 0x10 + to_val (strh[3 * u + 1]);
+    for (i = 0; (unsigned)i < length; i ++) {
+      strf[i] = (byte) to_val (strh[3 * i]) * 0x10 + to_val (strh[3 * i + 1]);
     }
 
     /* Search until no more or user quit */
@@ -876,6 +880,7 @@ static void find_seq (void) {
 
 int main (int argc, char *argv[]) {
 char car;
+char *pchar;
 boolean done;
 
   if (argc == 2) {
@@ -888,6 +893,10 @@ boolean done;
     usage ();
     exit(0);
   }
+
+  pchar=getenv("MU_UNPRINTABLE");
+  if (pchar && (strlen(pchar) == 1) ) unprintable=pchar;
+
   open_file ();
 
   open_keybd ();
