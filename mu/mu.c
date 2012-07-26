@@ -10,6 +10,7 @@
 /* 2.8 | 19990711 | P. Malaise | Main returns int                             */
 /* 2.9 | 20000127 | P. Malaise | Fix many warnings                            */
 /* 2.A | 20110329 | P. Malaise | Add getenv of unprintable character          */
+/* 2.B | 20120726 | P. Malaise | Support file length larger than 31 bits      */
 /*----------------------------------------------------------------------------*/
 #include <fcntl.h>
 #include <errno.h>
@@ -21,7 +22,7 @@
 
 #include "vt100.h"
 
-#define TITLE "Malaise utilities - V2.A -->"
+#define TITLE "Malaise utilities - V2.B -->"
 #define USAGE "Usage : mu [-r] file\n"
 
 #define ABORT(str) (printf ("%s\n", str), exit(1))
@@ -40,7 +41,7 @@ static char *file_name;
 static int  file_des;
 
 /* Number of bytes of the file */
-static unsigned long file_size;
+static long long file_size;
 
 /* Last page no 1 .. */
 static unsigned int last_page;
@@ -334,7 +335,7 @@ static void display_page_num (void) {
 
 static void display_pos (void) {
   gotoxy (3, 3);
-  cprintf ("Pos: 0x%08lX", file_pos(current_page, pos));
+  cprintf ("Pos: 0x%012lX", file_pos(current_page, pos));
 }
 
 static void display_page (void) {
@@ -540,7 +541,7 @@ static void find_loop (byte *template, unsigned length) {
 
   /* Check length */
   pos_file = file_pos (current_page, pos);
-  if ((unsigned long)pos_file + (unsigned long)length > file_size) {
+  if ((long long)pos_file + (long long)length > file_size) {
     mvprint (22, 10, "Not found !!!");
     to_erase = true;
     beep (3, 3000);
@@ -593,7 +594,7 @@ static void find_loop (byte *template, unsigned length) {
     }
 
     /* Check length */
-    if ((unsigned long)file_index >= file_size) {
+    if ((long long)file_index >= file_size) {
       current_page = page_sav;
       pos = pos_sav;
       new_page ();

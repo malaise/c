@@ -11,7 +11,7 @@ void close_keybd (void);
 void highvideo (void);
 void lowvideo (void);
 
-long filelength (int fd);
+long long filelength (int fd);
 
 char read_char (void);
 

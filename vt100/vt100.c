@@ -53,11 +53,11 @@ void lowvideo (void) {
   printf("%s",chaine);
 }
 
-long filelength (int fd) {
+long long filelength (int fd) {
   struct stat buf;
 
   fstat(fd, &buf);
-  return ((long) buf.st_size);
+  return ((long long) buf.st_size);
 }
 
 
