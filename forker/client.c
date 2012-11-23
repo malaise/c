@@ -90,6 +90,7 @@ int main(int argc, char *argv[]) {
     res  = soc_set_dest_name_port(soc, argv[2], proto == Ipm, port_no);
     if (res != SOC_OK) {
       perror("soc_set_dest_name_port");
+      terror("soc_open", res);
       exit (1);
     }
   }
