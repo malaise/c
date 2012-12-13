@@ -1,0 +1,19 @@
+#!/bin/bash
+
+export pid=$1
+
+function do_one {
+  date=`date "+%Y/%m/%d-%H:%M:%S"`
+  vsz=`ps u -p $pid | awk '(NR == 2) {print $5}'`
+  if [ "$vsz" = ""  ] ; then
+    exit 0
+  fi
+  echo "$date $vsz"
+}
+
+
+while true ; do
+  do_one
+  usleep 1000000
+done
+
