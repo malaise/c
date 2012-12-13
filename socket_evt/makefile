@@ -9,7 +9,7 @@ LINKFROM := $(HOME)/ada/c
 
 LIBS := libsocket_evt
 
-OBJS_libsocket_evt := socket.o socket_afux.o
+OBJS_libsocket_evt := socket socket_afux
 
 include $(TEMPLATES)/c.mk
 

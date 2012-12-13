@@ -1,13 +1,16 @@
 include $(HOME)/Makefiles/common.mk
 
-DINCL := boolean
-DLIBA := socket_evt wait_evt timeval
+DINCL=boolean
+DLIBA=socket_evt timeval wait_evt
 
-LIBS := libutil
-OBJS_libutil := util.o
 
 EXES := udpspy
-LIBS_udpspy := libutil.a
+LIBS := libutil
+
+OBJS_libutil := util
+
+LIBS_udpspy := libutil
+LARGS_udpspy := -lpthread -lm
 
 include $(TEMPLATES)/c.mk
 

@@ -5,9 +5,9 @@ DINCL := boolean
 EXES := tdl
 LIBS := libdynlist
 
-OBJS_libdynlist := dynlist.o
+OBJS_libdynlist := dynlist
 
-LIBS_tdl := libdynlist.a
+LIBS_tdl := libdynlist
 
 include $(TEMPLATES)/c.mk
 

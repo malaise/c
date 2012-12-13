@@ -8,7 +8,7 @@ LINKFROM := $(HOME)/ada/c
 
 LIBS := libwait_evt
 
-OBJS_libwait_evt := wait_evt.o
+OBJS_libwait_evt := wait_evt
 
 include $(TEMPLATES)/c.mk
 

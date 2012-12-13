@@ -1,7 +1,7 @@
 include $(HOME)/Makefiles/common.mk
 
 DINCL := boolean
-DLIBA := timeval sem_util rusage
+DLIBA := rusage timeval sem_util
 
 EXES := gettimeofdays
 

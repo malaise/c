@@ -1,17 +1,17 @@
 include $(HOME)/Makefiles/common.mk
 
 DINCL := boolean
-DLIBA := timeval socket mutex sig_util
+DLIBA := timeval sig_util socket mutex
 
 LIBS := libtty libudp
-OBJS_libtty := tty.o
-OBJS_libudp := udp.o
+OBJS_libtty := tty
+OBJS_libudp := udp
 
 EXES := serial_spy gorgy
 CARGS_serial_spy := -DSTANDARD
-LIBS_serial_spy := libtty.a
+LIBS_serial_spy := libtty
 CARGS_gorgy := -DSTANDARD
-LIBS_gorgy := libtty.a libudp.a
+LIBS_gorgy := libtty libudp
 
 include $(TEMPLATES)/c.mk
 

@@ -2,12 +2,12 @@ include $(HOME)/Makefiles/common.mk
 
 DINCL := boolean
 
-FILES2LINK := timeval.h timeval.c
+FILES2LINK := timeval.c timeval.h
 LINKFROM := $(HOME)/ada/c
 
 LIBS := libtimeval
 
-OBJS_libtimeval := timeval.o
+OBJS_libtimeval := timeval
 
 include $(TEMPLATES)/c.mk
 

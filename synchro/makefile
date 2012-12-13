@@ -9,12 +9,12 @@ DLIBA := adjtime timeval socket mutex sig_util wait_evt
 LIBS := gorgy_decode
 EXES := synchro_server synchro_client synchro_serial eti
 
-OBJS_gorgy_decode := gorgy_decode.o
+OBJS_gorgy_decode := gorgy_decode
 
-LIBS_synchro_serial := gorgy_decode.a
+LIBS_synchro_serial := gorgy_decode
 LARGS_synchro_serial := $(LIB_TTY)
 
-LIBS_eti := gorgy_decode.a
+LIBS_eti := gorgy_decode
 LARGS_eti := $(LIB_TTY)
 
 include $(TEMPLATES)/c.mk
