@@ -37,7 +37,7 @@ static void flush (void) {
 
 
 int main(int argc, char *argv[]) {
-  unsigned char oct, prev_oct, prev_prev_oct;
+  unsigned char oct;
 
   int started;
 
@@ -49,8 +49,6 @@ int main(int argc, char *argv[]) {
   init_tty(argv[1], 1);
 
   started = 0;
-  prev_oct = '0';
-  prev_prev_oct = '0';
   index = 0;
 
   for(;;) {
@@ -67,17 +65,9 @@ int main(int argc, char *argv[]) {
       store (oct);
       if (oct == 0x0a) flush ();
     }
-#elif defined(DACOTA)
-    if (oct == 0x01) started = 1;
-    if (started) {
-      if ( (oct == 0x01) && (prev_prev_oct == 0x04) ) flush ();
-      store (oct);
-    }
 #else
-define STANDARD or TAAATS or PALLAS or DACOTA
+define STANDARD or TAAATS or PALLAS
 #endif
-    prev_prev_oct = prev_oct;
-    prev_oct = oct;
   }
 }
 
