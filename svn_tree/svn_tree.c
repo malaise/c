@@ -67,6 +67,31 @@ static boolean find_rev (long int node_rev, dlist *revlist) {
   return FALSE;
 }
 
+/* Open the ctx */
+static void open_ctx (apr_pool_t *ctx_pool,
+                      svn_client_ctx_t **ctx,
+                      apr_array_header_t *providers) {
+  svn_error_t *err;
+
+  /* Create a client context object. */
+  svn_client_create_context(ctx, ctx_pool);
+  if (*ctx == NULL) {
+    error ("Cannot create client context");
+  }
+
+  /* Make sure the ~/.subversion run-time config files exist, and load. */
+  err = svn_config_ensure (NULL, ctx_pool);
+  if (err != SVN_NO_ERROR) {
+    err = svn_config_get_config (&((*ctx)->config), NULL, ctx_pool);
+      if (err != SVN_NO_ERROR) {
+        error ("Cannot load run-time config ~/.subversion");
+      }
+  }
+  /* Register the auth-providers into the context's auth_baton. */
+  svn_auth_open (&(*ctx)->auth_baton, providers, ctx_pool);
+}
+
+
 /*************/
 /*** MAIN ***/
 /***********/
@@ -74,9 +99,11 @@ int main (int argc, const char *argv[]) {
 
   /* Svn variables */
   svn_error_t *err;
-  apr_allocator_t *allocator;
-  apr_pool_t *pool;
+  apr_allocator_t *allocator, *ctx_allocator;
+  apr_pool_t *pool, *ctx_pool;
   svn_client_ctx_t *ctx;
+  svn_auth_provider_object_t *provider;
+  apr_array_header_t *providers;
   apr_array_header_t *targets, *range_array;
   const char **target;
   apr_array_header_t *revisions;
@@ -84,6 +111,7 @@ int main (int argc, const char *argv[]) {
   svn_opt_revision_range_t **range, range_struct;
   apr_array_header_t *revprops;
   apr_uint32_t dirent_fields;
+  int count;
 
 
   /* Urls of local sandbox */
@@ -117,6 +145,14 @@ int main (int argc, const char *argv[]) {
   /* INITIALISATIONS */
   /*******************/
 
+  /* CHECK HELP */
+  /**************/
+  if ( (argc == 2) && (strcmp(argv[1], "-h") == 0
+                       || (strcmp(argv[1], "--help") == 0) ) ) {
+    put_help (argv[0]);
+    exit (1);
+  }
+
   /* CHECK STACK */
   /***************/
   debug1 (1, "Initializing");
@@ -148,7 +184,7 @@ int main (int argc, const char *argv[]) {
     error ("Cannot initialise command line");
   }
 
-  /* Creat our top-level pool.  Use a separate mutexless allocator,
+  /* Create our top-level pool. Use a separate mutexless allocator,
    * given this application is single threaded.
    */
   if (apr_allocator_create(&allocator)) {
@@ -161,44 +197,37 @@ int main (int argc, const char *argv[]) {
   }
   apr_allocator_owner_set(allocator, pool);
 
+  /* Create specific allocator and pool for context */
+  if (apr_allocator_create(&ctx_allocator)) {
+    error ("Cannot create context allocator");
+  }
+  apr_allocator_max_free_set(ctx_allocator, SVN_ALLOCATOR_RECOMMENDED_MAX_FREE);
+  ctx_pool = svn_pool_create_ex(NULL, ctx_allocator);
+  if (ctx_pool == NULL) {
+    error ("Cannot create context pool");
+  }
+  apr_allocator_owner_set(ctx_allocator, ctx_pool);
+
   /* Initialize the FS library. */
   err = svn_fs_initialize(pool);
   if (err != SVN_NO_ERROR) {
-     error ("Cannot initialize fs library");
+    error ("Cannot initialize fs library");
   }
 
-  /* Create a client context object. */
-  svn_client_create_context(&ctx, pool);
-  if (ctx == NULL) {
-    error ("Cannot create client context");
-  }
+  /* Make ctx capable of authenticating users */
+  providers = apr_array_make (pool, 4, sizeof (svn_auth_provider_object_t *));
 
-  /* Make sure the ~/.subversion run-time config files exist, and load. */
-  err = svn_config_ensure (NULL, pool);
-  if (err != SVN_NO_ERROR) {
-    err = svn_config_get_config (&(ctx->config), NULL, pool);
-     if (err != SVN_NO_ERROR) {
-       error ("Cannot load run-time config ~/.subversion");
-     }
-  }
+  svn_auth_get_simple_prompt_provider (&provider,
+       my_simple_prompt_callback, NULL, 2, pool);
+  APR_ARRAY_PUSH (providers, svn_auth_provider_object_t *) = provider;
 
-  /* Make ctx capable of  authenticating users */
-  {
-    svn_auth_provider_object_t *provider;
-    apr_array_header_t *providers
-           = apr_array_make (pool, 4, sizeof (svn_auth_provider_object_t *));
+  svn_auth_get_username_prompt_provider (&provider,
+        my_username_prompt_callback, NULL, 2, pool);
+  APR_ARRAY_PUSH (providers, svn_auth_provider_object_t *) = provider;
 
-    svn_auth_get_simple_prompt_provider (&provider,
-         my_simple_prompt_callback, NULL, 2, pool);
-    APR_ARRAY_PUSH (providers, svn_auth_provider_object_t *) = provider;
+  /* Init client context */
+  open_ctx (ctx_pool, &ctx, providers);
 
-    svn_auth_get_username_prompt_provider (&provider,
-          my_username_prompt_callback, NULL, 2, pool);
-    APR_ARRAY_PUSH (providers, svn_auth_provider_object_t *) = provider;
-
-    /* Register the auth-providers into the context's auth_baton. */
-    svn_auth_open (&ctx->auth_baton, providers, pool);
-  }
   debug1 (2, "Svn init OK");
 
   /* GET CURRENT URL */
@@ -207,13 +236,16 @@ int main (int argc, const char *argv[]) {
   {
     url_t path;
     (void)getcwd(path, sizeof(path));
-    err = svn_client_info2(path,
+    err = svn_client_info3(path,
                            NULL,
+                           NULL,
+                           svn_depth_empty,
+                           FALSE, FALSE,
                            NULL,
                            &client_info_cb,
                            &urls,
-                           svn_depth_empty,
-                           NULL, ctx, pool);
+                           ctx,
+                           pool);
     if (err != SVN_NO_ERROR) {
       error_data ("Cannot get client info: ", err->message);
     }
@@ -221,14 +253,6 @@ int main (int argc, const char *argv[]) {
 
   /* CHECK ARGUMENTS */
   /******************/
-  if ( (argc == 2) && (strcmp(argv[1], "-h") == 0) ) {
-    put_help (argv[0]);
-    exit (1);
-  }
-  if ( (argc == 2) && (strcmp(argv[1], "--help") == 0) ) {
-    put_help (argv[0]);
-    exit (1);
-  }
 
   /* Usage: svn_tree   <url> | CUR | ALLTAGS [ -of | -on    <url> | CUR ] */
   /* So either 1 arg or 3 */
@@ -376,6 +400,7 @@ int main (int argc, const char *argv[]) {
   /************************/
   debug1 (2, "Getting nodes");
   dlist_rewind (&name_list, TRUE);
+  count = 0;
   for (;;) {
 
     /* Get node info on current tag */
@@ -395,7 +420,7 @@ int main (int argc, const char *argv[]) {
                           log_entry_cb,
                           &node,
                           ctx,
-                          pool);
+                          ctx_pool);
     if (err != SVN_NO_ERROR) {
       if (err->apr_err != ABORT_ITERATIONS) {
         error_data ("Cannot log history:", err->message);
@@ -415,6 +440,14 @@ int main (int argc, const char *argv[]) {
     }
     if (dlist_get_pos (&name_list, FALSE) == 1) break;
     dlist_move (&name_list, TRUE);
+    /* Each 1000 iteration clear pool and re-create client context */
+    /* Necessary to avoid too many open sockets :-( */
+    count++;
+    if (count == 1000) {
+      count = 0;
+      apr_pool_clear (ctx_pool);
+      open_ctx (ctx_pool, &ctx, providers);
+    }
   }
   if (dlist_is_empty (&node_list)) {
     /* No mode node */
