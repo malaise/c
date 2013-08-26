@@ -12,7 +12,7 @@ void init_udp (char *port_name_no) {
   int cr;
   char lan_name[80];
 
-  if (soc_get_lan_name(lan_name, sizeof(lan_name)) != SOC_OK) {
+  if (soc_get_local_lan_name(lan_name, sizeof(lan_name)) != SOC_OK) {
     perror("getting lan name");
     exit (2);
   }

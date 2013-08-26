@@ -141,7 +141,7 @@ int main (int argc, char *argv[]) {
   res = soc_set_blocking (soc, FALSE);
   sleep (1);
   for (;;) {
-    res = soc_receive (soc, message, (soc_length)sizeof(message), TRUE, FALSE);
+    res = soc_receive (soc, message, (soc_length)sizeof(message), TRUE);
     if (res > 0) {
       message[res] = '\0';
       printf ("-->%s<\n", message);

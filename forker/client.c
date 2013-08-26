@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
 
     } else if (strcmp(buff, "r") == 0) {
       /* Read report */
-      n = soc_receive(soc, &report, sizeof(report), FALSE, FALSE);
+      n = soc_receive(soc, &report, sizeof(report), FALSE);
       if (n == sizeof(report)) {
         switch (report.kind) {
           case start_report :

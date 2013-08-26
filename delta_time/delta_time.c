@@ -228,7 +228,7 @@ int main (const int argc, const char * argv[]) {
       error (buff);
     } else {
       /* Now this is the socket, read message */
-      res = soc_receive (soc, (soc_message) &msg, sizeof(msg), TRUE, FALSE);
+      res = soc_receive (soc, (soc_message) &msg, sizeof(msg), TRUE);
       if (res < 0) {
         perror ("reading from socket");
         error ("Reading message failed");

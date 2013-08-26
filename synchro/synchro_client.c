@@ -62,7 +62,7 @@ int main (int argc, char *argv[]) {
   accuracy_timeout.tv_usec = (accuracy_ms % 1000) * 1000;
 
 
-  if (soc_get_lan_name(lan_name, sizeof(lan_name)) != SOC_OK) {
+  if (soc_get_local_lan_name(lan_name, sizeof(lan_name)) != SOC_OK) {
     perror ("getting lan name");
     exit (1);
   }
@@ -134,7 +134,7 @@ int main (int argc, char *argv[]) {
       }
 
       length = sizeof (synchro_msg);
-      cr = soc_receive (soc, (soc_message) &synchro_msg, length, FALSE, FALSE);
+      cr = soc_receive (soc, (soc_message) &synchro_msg, length, FALSE);
       get_time (&reply_time);
 
       if ( cr == sizeof (synchro_msg) ) {
