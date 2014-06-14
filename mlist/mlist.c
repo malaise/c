@@ -38,7 +38,7 @@ static size_t put_stats (int put_stats) {
       perror("scanf");
       exit(1);
     }
-    if (strncmp (buffer, crit, sizeof(crit)) == 0) break;
+    if (strncmp (buffer, crit, strlen(crit) + 1) == 0) break;
   }
   fclose (file);
   vmsize = strtol (vmtext, NULL, 10);
