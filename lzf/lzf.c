@@ -61,6 +61,7 @@ static const char *imagename;
 static enum { compress, uncompress, lzcat } mode = compress;
 static int verbose = 0;
 static int force = 0;
+static int raw = 0;
 static long blocksize = BLOCKSIZE;
 
 #ifdef HAVE_GETOPT_LONG
@@ -73,6 +74,7 @@ static long blocksize = BLOCKSIZE;
     {"help", 0, 0, 'h'},
     {"verbose", 0, 0, 'v'},
     {"blocksize", 1, 0, 'b'},
+    {"raw", 1, 0, 'r'},
     {0, 0, 0, 0}
   };
 
@@ -80,7 +82,11 @@ static long blocksize = BLOCKSIZE;
     "-c --compress    compress\n"
     "-d --decompress  decompress\n"
     "-f --force       force overwrite of output file\n"
-    "-h --help        give this help\n" "-v --verbose     verbose mode\n" "-b # --blocksize # set blocksize\n" "\n";
+    "-h --help        give this help\n"
+    "-v --verbose     verbose mode\n"
+    "-b # --blocksize # set blocksize\n"
+    "-r --raw         raw mode\n"
+    "\n";
 
 #else
 
@@ -91,6 +97,7 @@ static long blocksize = BLOCKSIZE;
     "-h   give this help\n"
     "-v   verbose mode\n"
     "-b # set blocksize\n"
+    "-r   raw mode\n"
     "\n";
 
 #endif
@@ -103,7 +110,7 @@ usage (int rc)
            "uses liblzf written by Marc Lehmann <schmorp@schmorp.de> You can find more info at\n"
            "http://liblzf.plan9.de/\n"
            "\n"
-           "usage: lzf [-dufhvb] [file ...]\n"
+           "usage: lzf [-dufhvbr] [file ...]\n"
            "       unlzf [file ...]\n"
            "       lzcat [file ...]\n"
            "\n%s",
@@ -207,7 +214,8 @@ compress_fd (int from, int to)
           header[4] = us & 0xff;
           len = us + TYPE0_HDR_SIZE;
         }
-
+      if (raw) 
+        header = &buf2[MAX_HDR_SIZE]; 
       if (wwrite (to, header, len) == -1)
         return -1;
     }
@@ -228,56 +236,72 @@ uncompress_fd (int from, int to)
   nr_read = nr_written = 0;
   while (1)
     {
-      rc = rread (from, header + over, MAX_HDR_SIZE - over);
-      if (rc < 0)
+
+      if (raw) 
         {
-          fprintf (stderr, "%s: read error: ", imagename);
-          perror ("");
-          return -1;
+          rc = rread (from, buf1, sizeof(buf1));
+          if (rc < 0)
+            {
+              fprintf (stderr, "%s: read error: ", imagename);
+              perror ("");
+              return -1;
+            }
+          l = 0;
+          bytes = rc;
         }
-
-      rc += over;
-      over = 0;
-      if (!rc || header[0] == 0)
-        return 0;
-
-      if (rc < MIN_HDR_SIZE || header[0] != 'Z' || header[1] != 'V')
+      else
         {
-          fprintf (stderr, "%s: invalid data stream - magic not found or short header\n", imagename);
-          return -1;
-        }
+          rc = rread (from, header + over, MAX_HDR_SIZE - over);
+          if (rc < 0)
+            {
+              fprintf (stderr, "%s: read error: ", imagename);
+              perror ("");
+              return -1;
+            }
 
-      switch (header[2])
-        {
-          case 0:
-            cs = -1;
-            us = (header[3] << 8) | header[4];
-            p = &header[TYPE0_HDR_SIZE];
-            break;
-          case 1:
-            if (rc < TYPE1_HDR_SIZE)
-              {
-                goto short_read;
-              }
-            cs = (header[3] << 8) | header[4];
-            us = (header[5] << 8) | header[6];
-            p = &header[TYPE1_HDR_SIZE];
-            break;
-          default:
-            fprintf (stderr, "%s: unknown blocktype\n", imagename);
-            return -1;
-        }
+          rc += over;
+          over = 0;
+          if (!rc || header[0] == 0)
+            return 0;
 
-      bytes = cs == -1 ? us : cs;
-      l = &header[rc] - p;
+          if (rc < MIN_HDR_SIZE || header[0] != 'Z' || header[1] != 'V')
+            {
+              fprintf (stderr, "%s: invalid data stream - magic not found or short header\n", imagename);
+              return -1;
+            }
 
-      if (l > 0)
-        memcpy (buf1, p, l);
+          switch (header[2])
+            {
+              case 0:
+                cs = -1;
+                us = (header[3] << 8) | header[4];
+                p = &header[TYPE0_HDR_SIZE];
+                break;
+              case 1:
+                if (rc < TYPE1_HDR_SIZE)
+                  {
+                    goto short_read;
+                  }
+                cs = (header[3] << 8) | header[4];
+                us = (header[5] << 8) | header[6];
+                p = &header[TYPE1_HDR_SIZE];
+                break;
+              default:
+                fprintf (stderr, "%s: unknown blocktype\n", imagename);
+                return -1;
+            }
 
-      if (l > bytes)
-        {
-          over = l - bytes;
-          memmove (header, &p[bytes], over);
+          bytes = cs == -1 ? us : cs;
+          l = &header[rc] - p;
+
+          if (l > 0)
+            memcpy (buf1, p, l);
+
+          if (l > bytes)
+            {
+              over = l - bytes;
+              memmove (header, &p[bytes], over);
+            }
         }
 
       p = &buf1[l];
@@ -471,9 +495,9 @@ main (int argc, char *argv[])
     mode = lzcat;
 
 #ifdef HAVE_GETOPT_LONG
-  while ((optc = getopt_long (argc, argv, "cdfhvb:", longopts, 0)) != -1)
+  while ((optc = getopt_long (argc, argv, "cdfhvb:r", longopts, 0)) != -1)
 #else
-  while ((optc = getopt (argc, argv, "cdfhvb:")) != -1)
+  while ((optc = getopt (argc, argv, "cdfhvb:r")) != -1)
 #endif
     {
       switch (optc)
@@ -499,6 +523,9 @@ main (int argc, char *argv[])
             if (errno || !blocksize || blocksize > MAX_BLOCKSIZE)
               blocksize = BLOCKSIZE;
             break;
+          case 'r':
+            raw = 1;
+            break;
           default:
             usage (1);
             break;
@@ -520,6 +547,8 @@ main (int argc, char *argv[])
               exit (1);
             }
         }
+
+printf ("Compressing\n");
 
       if (mode == compress)
         rc = compress_fd (0, 1);
