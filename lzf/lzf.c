@@ -214,8 +214,11 @@ compress_fd (int from, int to)
           header[4] = us & 0xff;
           len = us + TYPE0_HDR_SIZE;
         }
-      if (raw) 
-        header = &buf2[MAX_HDR_SIZE]; 
+      if (raw)
+        {
+          header = &buf2[MAX_HDR_SIZE]; 
+          len = cs;
+        }
       if (wwrite (to, header, len) == -1)
         return -1;
     }
@@ -547,8 +550,6 @@ main (int argc, char *argv[])
               exit (1);
             }
         }
-
-printf ("Compressing\n");
 
       if (mode == compress)
         rc = compress_fd (0, 1);
