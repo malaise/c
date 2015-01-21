@@ -33,6 +33,12 @@
  * provisions above, a recipient may use your version of this file under
  * either the BSD or the GPL.
  */
+#ifdef TRACE
+#  include <stdio.h>
+#  define LOG(...) fprintf (stderr, __VA_ARGS__)
+#else
+#  define LOG
+#endif
 
 #include "lzfP.h"
 
@@ -142,8 +148,18 @@ lzf_compress (const void *const in_data, unsigned int in_len,
       LZF_HSLOT *hslot;
 
       hval = NEXT (hval, ip);
+        LOG ("Index %02X future %08X hash %X\n",
+             (int) (ip - (u8*)in_data), hval, IDX(hval));
       hslot = htab + IDX (hval);
       ref = *hslot + LZF_HSLOT_BIAS; *hslot = ip - LZF_HSLOT_BIAS;
+
+      LOG ("Off read %02X\n", (int)(ref-(u8*)in_data));
+      if (ref > 0) {
+        LOG ("Bytes at ref %02X %02X %02X\n", (int)ref[0], (int)ref[1],
+                                              (int)ref[2]);
+        LOG ("Ip-Ref %02X\n", ip-ref);
+      }
+      LOG ("Bytes here   %02X %02X %02X\n", (int)ip[0], (int)ip[1], (int)ip[2]);
 
       if (1
 #if INIT_HTAB
@@ -163,6 +179,7 @@ lzf_compress (const void *const in_data, unsigned int in_len,
           unsigned int len = 2;
           unsigned int maxlen = in_end - ip - len;
           maxlen = maxlen > MAX_REF ? MAX_REF : maxlen;
+          LOG ("Match\n");
 
           if (expect_false (op + 3 + 1 >= out_end)) /* first a faster conservative test */
             if (op - !lit + 3 + 1 >= out_end) /* second the exact but rare test */
@@ -255,6 +272,7 @@ lzf_compress (const void *const in_data, unsigned int in_len,
         }
       else
         {
+          LOG ("No match\n");
           /* one more literal byte we must copy */
           if (expect_false (op >= out_end))
             return 0;
