@@ -154,7 +154,7 @@ lzf_compress (const void *const in_data, unsigned int in_len,
       ref = *hslot + LZF_HSLOT_BIAS; *hslot = ip - LZF_HSLOT_BIAS;
 
       LOG ("Off read %02X\n", (int)(ref-(u8*)in_data));
-      if (ref > 0) {
+      if ( (ref >= (u8*)in_data) && (ref < in_end) ) {
         LOG ("Bytes at ref %02X %02X %02X\n", (int)ref[0], (int)ref[1],
                                               (int)ref[2]);
         LOG ("Ip-Ref %02X\n", ip-ref);
