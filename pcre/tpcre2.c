@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <pcreposix.h>
-#include <pcre.h>
+
+#include <pcre2posix.h>
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
 
 static void usage (char *name) {
   fprintf (stderr, "Usage: %s <regex> { [ <string> ] }\n", name);
@@ -33,7 +35,8 @@ int main (int argc, char *argv[]) {
   }
   /* Show version */
   if ( (strcmp (argv[1], "-v") == 0) || (strcmp (argv[1], "--version") == 0) ) {
-    printf ("Pcre version is %s\n", pcre_version());
+    res = pcre2_config (PCRE2_CONFIG_VERSION, buffer);
+    printf ("Pcre version is %s\n", buffer);
     exit (0);
   }
 
