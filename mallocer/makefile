@@ -13,7 +13,7 @@ LIBS_mallocer_r := lib_r
 
 include $(TEMPLATES)/c.mk
 
-$(BIN)/mallocer_m $(BIN)/mallocer_h $(BIN)/mallocer_r : $(LIB)/mallocer.o
+$(EXES) : $(LIB)/mallocer.o
 	@if [ "$(LIBS_$(@F))" != "" ]; then \
 	  make $(patsubst %,$(LIB)/%.a,$(LIBS_$(@F))); \
 	fi

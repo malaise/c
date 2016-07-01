@@ -1,4 +1,3 @@
 # For normal libs
-bin_Linux/
-lib_Linux/
+lib
 .gitignore
