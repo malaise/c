@@ -3,8 +3,10 @@
 
 #include <stdio.h>
 
+/* The circulat file descriptor */
 struct cir_file;
 
+/* The character marker of the circular limit end/start */
 extern char CIR_EOF;
 
 /* This routine attemps to open a \a size byte circular file \a
@@ -14,7 +16,8 @@ extern char CIR_EOF;
  * \warning This routine performs dynamic memory allocation : don't forget to
  * call \c cir_close when finished.
  */
-extern struct cir_file* cir_open(const char* filename, const char* mode, unsigned int size);
+extern struct cir_file* cir_open(const char* filename, const char* mode,
+                                 unsigned int size);
 
 /* This routine closes the circular file \a fd and free the \c cir_file
  * structure.

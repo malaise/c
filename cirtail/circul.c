@@ -26,7 +26,7 @@ struct cir_file
 
 /* Routines
  ******************************************************************************/
-static int recherche_marque (struct cir_file * fd);
+static int lookup_marker (struct cir_file * fd);
 static int write_mfb (struct cir_file * fd);
 static int local_fwrite (char *buff ,int size ,unsigned int lg ,FILE *fd );
 
@@ -61,12 +61,12 @@ int cir_gets (struct cir_file *fd, char *buffer,  unsigned int lg)
 
     if (lg == (unsigned int) 0) return 0;
 
-    /* la fin a deja ete rencontree a la lecture precedente */
+    /* The end was already reached during the previous read */
     if (fd->end == IS_FOUND) return 0;
 
     if (fd->mark == IS_NOT_FOUND) {
-        /* la marque n'a pas ete trouvee */
-        lu = recherche_marque (fd);
+        /* The marker has not been found */
+        lu = lookup_marker (fd);
         if (lu == 0) return -1;
     }
 
@@ -130,7 +130,7 @@ struct cir_file* cir_open(const char *path, const char *mode, unsigned int lg)
 }
 
 /******************************************************************************/
-static int recherche_marque (struct cir_file *fd)
+static int lookup_marker (struct cir_file *fd)
 {
     union {
         char *ptc;
@@ -167,11 +167,12 @@ int cir_read (struct cir_file *fd, char* buffer, unsigned int size)
     if (fd->mode != READ) return -1;
     if (size == 0)  return 0;
 
-    /* la fin a deja ete rencontree a la lecture precedente */
+    /* The end was already reached during the previous read */
     if (fd->end == IS_FOUND) return 0;
 
-    if (fd->mark == IS_NOT_FOUND) {    /* la marque n'a pas ete trouvee */
-        if ( (lu = recherche_marque(fd)) == 0) return -1;
+    if (fd->mark == IS_NOT_FOUND) {
+        /* The marker has not been found */
+        if ( (lu = lookup_marker(fd)) == 0) return -1;
     }
 
     X.ptc=buffer;

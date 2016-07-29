@@ -45,7 +45,8 @@ int offset;
     }
 
     if (circular_file_name == NULL) {
-        fprintf (stderr, "Syntax error. Syntax %s [ -i <delay_ms> ] <circular_file_name>\n", argv[0]);
+        fprintf (stderr, "Syntax error. Syntax %s "
+                         "[ -i <delay_ms> ] <circular_file_name>\n", argv[0]);
         exit (1);
     }
 
@@ -53,7 +54,8 @@ int offset;
     circul_file = fopen(circular_file_name, "r");
     if (circul_file == (FILE*) NULL) {
         perror ("fopen");
-        fprintf(stderr, "Cannot open the circular file %s\n", circular_file_name);
+        fprintf(stderr, "Cannot open the circular file %s\n",
+                circular_file_name);
         exit (1);
     }
 
@@ -113,18 +115,21 @@ int offset;
                 fclose (circul_file);
             } else {
                 /* Mark found. Current end of file */
-                /* Close file, wait a bit, then look for mark from same location */
+                /* Close file, wait a bit, then look for mark from */
+                /*  same location */
                 last_pos = ftell (circul_file) - 1;
                 fclose (circul_file);
                 (void) fflush (stdout);
                 delay.tv_sec = delay_ms / 1000;
                 delay.tv_usec = (delay_ms % 1000) * 1000;
-                (void) select (0, (fd_set *) NULL, (fd_set *) NULL, (fd_set *) NULL, &delay);
+                (void) select (0, (fd_set *) NULL, (fd_set *) NULL,
+                                  (fd_set *) NULL, &delay);
             }
             circul_file = fopen(circular_file_name, "r");
             if (circul_file == (FILE*) NULL) {
                 perror ("fopen");
-                fprintf(stderr, "Cannot re-open the circular file %s\n", circular_file_name);
+                fprintf(stderr, "Cannot re-open the circular file %s\n",
+                        circular_file_name);
                 break;
             }
             (void) fseek(circul_file, last_pos, SEEK_SET);

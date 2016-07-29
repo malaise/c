@@ -10,7 +10,6 @@
 
 #include "circul.h"
 
-
 #define INTERNAL_BUFFER_SIZE  512
 char buffer[INTERNAL_BUFFER_SIZE];
 
@@ -49,7 +48,8 @@ struct cir_file *circul_fd = NULL;
   strcpy (buffer, "End of circular file\n");
   char_read = strlen(buffer);
   if (write(output_fd, buffer, char_read) != char_read) {
-    fprintf(stderr, "Cannot write \"End of circular file\" on linear file %s", output_file_name);
+    fprintf(stderr, "Cannot write \"End of circular file\" on linear file %s",
+            output_file_name);
     return (1);
   }
   cir_close (circul_fd);
@@ -63,7 +63,8 @@ int i;
 
 
   if (argc < 2) {
-    fprintf (stderr, "Syntax error. Syntax %s { <circular_file_name> }\n", argv[0]);
+    fprintf (stderr, "Syntax error. Syntax %s { <circular_file_name> }\n",
+             argv[0]);
     exit (1);
   }
 
@@ -76,7 +77,8 @@ int i;
     output_fd = open(output_file_name, O_WRONLY|O_CREAT|O_TRUNC, 0777);
   } while ( (output_fd == -1) && (errno == EINTR));
   if (output_fd == -1) {
-    fprintf(stderr, "Cannot create the linear file %s (errno = %d)", output_file_name, errno);
+    fprintf(stderr, "Cannot create the linear file %s (errno = %d)",
+            output_file_name, errno);
     exit (1);
   }
 
@@ -88,7 +90,8 @@ int i;
 
   strcpy (buffer, "\n");
   if (write(output_fd, buffer, 1) != 1) {
-    fprintf(stderr, "Cannot write last \\n on linear file %s", output_file_name);
+    fprintf(stderr, "Cannot write last \\n on linear file %s",
+            output_file_name);
     exit (1);
   }
   close (output_fd);
