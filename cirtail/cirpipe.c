@@ -8,8 +8,10 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "circul.h"
+/* Read stdin (a pipe) flow and outputs it in a circular file (argv[1]) */
+/*  of a given size (arv[2]) */
 
+#include "circul.h"
 
 #define INTERNAL_BUFFER_SIZE  1024
 char buffer[INTERNAL_BUFFER_SIZE];

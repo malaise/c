@@ -1,8 +1,3 @@
-/*
- SPACF    DATE      CORRECTOR         DESCRIPTION
-          311096    P.MALAISE         Creation
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,12 +5,14 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
+/* Tail -f a circular file (argv[1]), outputs on stdout */
+/*  option -i <period_ms> changes the polling period (default 1000 ms) */
+
 #include "circul.h"
 
 #define DEFAULT_DELAY_MS 1000
 
 #define BUFFER_SIZE 512
-
 
 int main (int argc, char *argv[]) {
 
