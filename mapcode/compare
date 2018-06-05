@@ -1,0 +1,54 @@
+#!/bin/bash
+ADA=$HOME/ada/usr/mapcode
+res=0
+echo Encode
+while read -r lat lon || [[ -n "$lat" ]]; do
+  if [ \( -z "$lat" \) -o \( "$lat" = "#" \) ] ; then
+    continue
+  fi
+  
+  resc=`tmc -c $lat $lon ""`
+  resa=`${ADA}/t_mapcode -c $lat $lon False | awk '
+    ($1 == "=>") {
+      if ($2 == "AAA") print $3
+      else print $2 " " $3
+    }
+  '`
+
+  if [ "$resa" != "$resc" ] ; then
+     echo "ERROR: Encoding differs." 1>&2
+    echo "  C:   " $resc 1>&2
+    echo "  Ada: " $resa 1>&2
+    res=1
+  fi
+done < ${ADA}/EncodeOk.txt
+
+echo Decode
+let L=0
+while read -r ctx cod lat lon loc glob || [[ -n "$ctx" ]]; do
+  if [ \( -z "$ctx" \) -o \( "$ctx" = "#" \) ] ; then
+    continue
+  fi
+  resc=`tmc -d $ctx $cod`
+  resa=`${ADA}/t_mapcode -d $ctx $cod | awk '
+    ($1 == "=>") {print $2 " " $3}
+  '`
+
+  if [ "$resa" != "$resc" ] ; then
+     echo "ERROR: Decoding differs." 1>&2
+    echo "  C:   " $resc 1>&2
+    echo "  Ada: " $resa 1>&2
+    res=1
+  fi
+
+  R=$((L % 100))
+  if [ $R -eq 0 ] ; then
+    echo -n "."
+  fi
+  let L=$L+1
+
+done < ${ADA}/DecodeOk.txt
+echo
+
+echo "Done."
+exit $res
