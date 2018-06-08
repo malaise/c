@@ -8,7 +8,7 @@ while read -r lat lon || [[ -n "$lat" ]]; do
   fi
   
   resc=`tmc -c $lat $lon ""`
-  resa=`${ADA}/t_mapcode -c $lat $lon False | awk '
+  resa=`${ADA}/t_mapcode -c $lat $lon all | awk '
     ($1 == "=>") {
       if ($2 == "AAA") print $3
       else print $2 " " $3
@@ -52,3 +52,4 @@ echo
 
 echo "Done."
 exit $res
+
