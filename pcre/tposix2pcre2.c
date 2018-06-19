@@ -2,9 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <pcre2posix.h>
-#define PCRE2_CODE_UNIT_WIDTH 8
-#include <pcre2.h>
+#include <posix2pcre.h>
 
 static void usage (char *name) {
   fprintf (stderr, "Usage: %s <regex> { [ <string> ] }\n", name);
@@ -20,6 +18,7 @@ int main (int argc, char *argv[]) {
   int i, j, n, res;
   regex_t regex;
   char buffer[1024];
+  const char *pchar;
   regmatch_t matches[MAX_MATCHES];
 
   /* At least one argument, -h | --help | <regex> */
@@ -35,15 +34,15 @@ int main (int argc, char *argv[]) {
   }
   /* Show version */
   if ( (strcmp (argv[1], "-v") == 0) || (strcmp (argv[1], "--version") == 0) ) {
-    res = pcre2_config (PCRE2_CONFIG_VERSION, buffer);
-    printf ("Pcre version is %s\n", buffer);
+    pchar = pcre_version ();
+    printf ("Pcre version is %s\n", pchar);
     exit (0);
   }
 
   /* Compile regex */
-  res = regcomp (&regex, argv[1], 0);
+  res = posix2pcre_regcomp (&regex, argv[1], 0);
   if (res != 0) {
-    (void) regerror (res, &regex, buffer, sizeof(buffer));
+    (void) posix2pcre_regerror (res, &regex, buffer, sizeof(buffer));
     fprintf (stderr, "ERROR: Compilation has failed with error: %s\n",
              buffer);
     exit (1);
@@ -52,13 +51,13 @@ int main (int argc, char *argv[]) {
   /* Check strings */
   for (i = 3; i <= argc; i++) {
     /* Compile */
-    res = regexec (&regex, argv[i-1], MAX_MATCHES, matches, 0);
+    res = posix2pcre_regexec (&regex, argv[i-1], MAX_MATCHES, matches, 0);
     if (res == REG_NOMATCH) {
       printf ("No match\n");
       continue;
     }
     if (res != 0) {
-      (void) regerror (res, &regex, buffer, sizeof(buffer));
+      (void) posix2pcre_regerror (res, &regex, buffer, sizeof(buffer));
       fprintf (stderr, "ERROR: Execution has failed with error: %s\n",
                buffer);
       exit (1);
@@ -82,7 +81,7 @@ int main (int argc, char *argv[]) {
   }
 
   /* Cleanup */
-  regfree (&regex);
+  posix2pcre_regfree (&regex);
     
   /* Done */
   exit (0);
