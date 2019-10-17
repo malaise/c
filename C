@@ -1,0 +1,36 @@
+Creating Libraries
+If you have a bunch of files that contain just functions, you can turn these source files into libraries that can be used statically or dynamically by programs. This is good for program modularity, and code re-use. Write Once, Use Many.
+A library is basically just an archive of object files.
+Creating Libraries :: Static Library Setup
+First thing you must do is create your C source files containing any functions that will be used. Your library can contain multiple object files.
+After creating the C source files, compile the files into object files.
+To create a library:
+  ar rcs libmylib.a objfile1.o objfile2.o objfile3.o
+This will create a static library called libname.a. Rename the "mylib" portion of the library to whatever you want.
+That is all that is required. If you plan on copying the library, remember to use the -p option with cp to preserve permissions.
+Creating Libraries :: Static Library Usage
+Remember to prototype your library function calls so that you do not get implicit declaration errors.
+When linking your program to the libraries, make sure you specify where the library can be found:
+  gcc -o foo foo.o -L. -lmylib
+The -L. piece tells gcc to look in the current directory in addition to the other library directories for finding libmylib.a.
+You can easily integrate this into your Makefile (even the Static Library Setup part).
+Creating Libraries :: Shared Library Setup
+Creating shared or dynamic libraries is simple also. Using the previous example, to create a shared library:
+  gcc -fPIC -c objfile1.c
+  gcc -fPIC -c objfile2.c
+  gcc -fPIC -c objfile3.c
+  gcc -shared -o libmylib.so objfile1.o objfile2.o objfile3.o
+The -fPIC option is to tell the compiler to create Position Independent Code (create libraries using relative addresses rather than absolute addresses because these libraries can be loaded multiple times). The -shared option is to specify that an architecture-dependent shared library is being created. However, not all platforms support this flag.
+Now we have to compile the actual program using the libraries:
+  gcc -o foo foo.o -L. -lmylib
+Notice it is exactly the same as creating a static library. Although, it is compiled in the same way, none of the actual library code is inserted into the executable, hence the dynamic/shared library.
+Note: You can automate this process using Makefiles!
+Creating Libraries :: Shared Library Usage
+Since programs that use static libraries already have the library code compiled into the program, it can run on its own. Shared libraries dynamically access libraries at run-time thus the program needs to know where the shared library is stored. What's the advantage of creating executables using Dynamic Libraries? The executable is much smaller than with static libraries. If it is a standard library that can be installed, there is no need to compile it into the executable at compile time!
+The key to making your program work with dynamic libraries is through the LD_LIBRARY_PATH enviornment variable. To display this variable, at a shell:
+  echo $LD_LIBRARY_PATH
+Will display this variable if it is already defined. If it isn't, you can create a wrapper script for your program to set this variable at run-time. Depending on your shell, simply use setenv (tcsh, csh) or export (bash, sh, etc) commands. If you already have LD_LIBRARY_PATH defined, make sure you append to the variable. For example:
+  setenv LD_LIBRARY_PATH /path/to/library:${LD_LIBRARY_PATH}
+would be the command you would use if you had tcsh/csh and already had an existing LD_LIBRARY_PATH. An example with bash shells:
+  export LD_LIBRARY_PATH=/path/to/library:${LD_LIBRARY_PATH}
+If you have administrative rights to your computer, you can install the particular library to the /usr/local/lib directory if it makes sense and permanently add an LD_LIBRARY_PATH into your .tcshrc, .cshrc, .bashrc, etc. file.
