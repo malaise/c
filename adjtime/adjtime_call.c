@@ -1,6 +1,6 @@
 #include <errno.h>
 #include <stdio.h>
-#include "adjtime_call.h"
+#include <adjtime_call.h>
 
 
 extern int adjtime_call (struct timeval *new_delta, struct timeval *old_delta) {
