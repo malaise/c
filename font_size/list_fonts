@@ -1,0 +1,48 @@
+#!/bin/bash
+
+function usage {
+  echo "Usage: `basename $0` <regex> [ <normal> <bold> ]"
+}
+
+
+if [ $# -eq 0 ] ; then
+  usage
+  exit 1
+fi
+export REGEX="$1"
+
+export NORMAL=""
+export BOLD=""
+if [ $# -eq 3 ]; then
+  NORMAL="$2"
+  BOLD="$3"
+elif [ $# -ne 1 ]; then
+  echo "ERROR: Invalid arguments." 1>&2
+  usage
+  exit 1
+fi
+
+# List all matching fonts
+export FONTS=`xlsfonts | grep -E "$REGEX"`
+
+# Size of one font
+function size {
+  local FONT=$1
+  if [[ "$FONT" =~ ^.*-iso10646-1$ ]] ; then
+    FONT=`echo $FONT | sed -e "s/-1$/-*/"`
+  fi
+  font_size "" "$FONT"
+}
+
+# Size of each font
+for FONT in $FONTS ; do
+
+  size $FONT
+  if [ -n "$NORMAL" ] ; then
+    BOLD_FONT=`echo $FONT | sed s/$NORMAL/$BOLD/`
+    size $BOLD_FONT
+    echo ""
+  fi
+done
+
+
