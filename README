@@ -18,6 +18,7 @@ rusage           : Unix resource usage
 sem_util         : Semaphore operations
 sig_util         : Signal management
 vt100            : Console emulator
+.sys/tree.h      : contain an implementation of red-black tree and splay tree
 
 Programs:
 16_unali         : 10 base to 16 base conversion
