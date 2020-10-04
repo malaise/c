@@ -80,7 +80,7 @@ int main (const int argc, const char * argv[]) {
 
   /* Utilities */
   boolean for_read;
-  char buff[256];
+  char addr[256], buff[1024];
   int res;
   char *index;
 
@@ -99,15 +99,15 @@ int main (const int argc, const char * argv[]) {
     error ("Invalid argument");
   }
   /* Parse IPM address and port */
-  strcpy (buff, argv[1]);
-  index = strstr (buff, ":");
+  strcpy (addr, argv[1]);
+  index = strstr (addr, ":");
   if (index == NULL) {
      error ("Invalid argument");
   }
   *index = '\0';
   index++;
-  if (soc_str2host (buff, &lan) != SOC_OK) {
-    sprintf (buff, "Invalid ipm address %s", buff);
+  if (soc_str2host (addr, &lan) != SOC_OK) {
+    sprintf (buff, "Invalid ipm address %s", addr);
     error (buff);
   }
   if (soc_str2port (index, &port) != SOC_OK) {

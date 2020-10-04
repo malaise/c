@@ -110,7 +110,7 @@ static void title (void) {
   } else {
     p = file_name + strlen(file_name) - (FILE_NAME_LEN-1);
     strcpy (printed_file_name, p);
-    strncpy (printed_file_name, PREFIX, strlen(PREFIX));
+    memcpy (printed_file_name, PREFIX, strlen(PREFIX));
   }
 
   mvprint (1,  9,"Page");

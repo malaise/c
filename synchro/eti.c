@@ -113,7 +113,8 @@ static void decode_and_synchro (void) {
   (void) sub_time (&delta_delta, &curr_adjust);
 
   /* If |delta_delta| < threshold, then */
-  if ( (delta_delta.tv_sec != 0) || (abs(delta_delta.tv_usec)/1000 > threshold_msec) ) {
+  if ( (delta_delta.tv_sec != 0)
+    || (abs ((int)(delta_delta.tv_usec/1000)) > threshold_msec) ) {
     if (adjtime_call (&curr_delta, (struct timeval*)NULL)  == -1) {
       fprintf (stderr, "At %s, ", curr_time_str);
       perror ("Adjtime_call");

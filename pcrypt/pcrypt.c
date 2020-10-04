@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <libgen.h>
+#include <crypt.h>
 
 
 #define Usage() fprintf(stderr, "Usage: %s <2_digits_key> <password>\n", \
@@ -24,7 +25,7 @@ int main (int argc, char *argv[]) {
 
   printf ("Salt: %s and Key: %s -> %s\n",
           argv[1], argv[2],
-          crypt(argv[2], argv[1]));
+          crypt (argv[2], argv[1]));
 
   exit(0);
 }
