@@ -18,7 +18,8 @@
 static void convert (char *file_name) {
   char *unix_file_name;
   FILE *fi, *fo;
-  char c, c1;
+  int c;
+  char c1;
 
   unix_file_name = malloc(strlen(file_name) + sizeof(SUFFIX));
   if (unix_file_name == (char*) NULL) {
@@ -55,7 +56,7 @@ static void convert (char *file_name) {
         write_char(c);
       }
       write_char(c1);
-    } else if ( (c == (char) 0x1A) || ((int)c == EOF) ) {
+    } else if ( (c == 0x1A) || (c == EOF) ) {
       break;
     } else {
       write_char(c);

@@ -10,6 +10,7 @@
 extern unsigned int get_text (FILE *file, char *str,
                               const unsigned int len) {
     unsigned int u;
+    int i;
     char c;
 
     errno = 0;
@@ -26,11 +27,12 @@ extern unsigned int get_text (FILE *file, char *str,
         }
         /* Read char */
         if (file == (FILE*)NULL) {
-            c = (char) getchar();
+            i = getchar();
         } else {
-            c = (char) fgetc(file);
+            i = fgetc(file);
         }
-        if ((int)c == EOF) {
+        c = (char) i;
+        if (i == EOF) {
             /* Error or end of file */
             break;
         } else {
@@ -71,11 +73,12 @@ int get_line (FILE *file, char *str, const int len) {
         }
         /* Read char */
         if (file == (FILE*)NULL) {
-            c = (char) getchar();
+            i = getchar();
         } else {
-            c = (char) fgetc(file);
+            i = fgetc(file);
         }
-        if ((int)c == EOF) {
+        c = (char) i;
+        if (i == EOF) {
             /* Error or end of file */
             return (-1);
         } else if (c == EOL) {

@@ -7,6 +7,7 @@
 int main (void) {
 
   int i;
+  void __attribute__((unused)) *p;
 
   if (init_rusage() != RUSAGE_OK) {
     fprintf (stderr, "Cannot init rusage\n");
@@ -17,7 +18,7 @@ int main (void) {
   for (;;)  {
      dump_rusage_str ("Call");
      for (i=1; i< 10000; i++)
-        (void) malloc(1 * 1024 * 1024);
+        p = malloc(1 * 1024 * 1024);
      (void) sleep (1) ;
   }
 

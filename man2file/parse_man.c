@@ -4,7 +4,7 @@
 
 int main (void) {
 
-  char c1, c2;
+  int c1, c2;
 
     c1 = (char) getchar();
     if ((int)c1 == EOF)  exit (0);

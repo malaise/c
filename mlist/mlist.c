@@ -17,7 +17,7 @@ static void *my_malloc(size_t size) {
 
 
 static size_t put_stats (int put_stats) {
-  struct mallinfo info;
+  struct mallinfo2 info;
   pid_t pid;
   FILE *file;
   char buffer[1024];
@@ -44,7 +44,7 @@ static size_t put_stats (int put_stats) {
   vmsize = strtol (vmtext, NULL, 10);
 
   /* Mallinfo */
-  info = mallinfo();
+  info = mallinfo2();
 #ifdef DEBUG
   printf("Mallinfo\n");
   printf("Arena %d\n", info.arena);
@@ -130,7 +130,7 @@ int main (int argc, char *argv[]) {
   printf ("\n");
   p = malloc(128 * 1024 * 1024);
   free(p);
-  (void) malloc (1024 * 1024 * 1024);
+  p = malloc (1024 * 1024 * 1024);
   alloc(leak);
   allocated = 0L;
 

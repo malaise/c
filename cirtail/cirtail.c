@@ -16,7 +16,7 @@
 
 int main (int argc, char *argv[]) {
 
-char c;
+int c;
 FILE * circul_file;
 int delay_ms;
 char * circular_file_name;

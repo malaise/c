@@ -49,7 +49,7 @@ int cir_close (struct cir_file *fd)
 int cir_gets (struct cir_file *fd, char *buffer,  unsigned int lg)
 {
     int lu = 0;
-    char c = EOF;
+    int c = EOF;
     union {
         char *ptc;
         void *ptv;

@@ -97,9 +97,6 @@ int main (int argc, char *argv[]) {
             if (buffer[i] == (char)0xE9) {
               buffer[j] = 'e';
               j++;
-            } else if (buffer[i] < '\0') {
-              /* Skip */
-              ;
             } else {
               buffer[j] = buffer[i];
               j++;
