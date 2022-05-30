@@ -17,7 +17,11 @@ static void *my_malloc(size_t size) {
 
 
 static size_t put_stats (int put_stats) {
+#ifdef HAVE_MALLINFO2
   struct mallinfo2 info;
+#else
+  struct mallinfo info;
+#endif
   pid_t pid;
   FILE *file;
   char buffer[1024];
@@ -44,7 +48,11 @@ static size_t put_stats (int put_stats) {
   vmsize = strtol (vmtext, NULL, 10);
 
   /* Mallinfo */
+#ifdef HAVE_MALLINFO2
   info = mallinfo2();
+#else
+  info = mallinfo();
+#endif
 #ifdef DEBUG
   printf("Mallinfo\n");
   printf("Arena %d\n", info.arena);
