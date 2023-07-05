@@ -11,6 +11,7 @@
 /* 2.9 | 20000127 | P. Malaise | Fix many warnings                            */
 /* 2.A | 20110329 | P. Malaise | Add getenv of unprintable character          */
 /* 2.B | 20120726 | P. Malaise | Support file length larger than 31 bits      */
+/* 3.0 | 20230706 | P. Malaise | Add PgUp/Down and Home/End                   */
 /*----------------------------------------------------------------------------*/
 #include <fcntl.h>
 #include <errno.h>
@@ -22,7 +23,7 @@
 
 #include "vt100.h"
 
-#define TITLE "Malaise utilities - V2.B -->"
+#define TITLE "Malaise utilities - V3.0 -->"
 #define USAGE "Usage : mu [-r] file\n"
 
 #define ABORT(str) (printf ("%s\n", str), exit(1))
@@ -121,7 +122,7 @@ static void title (void) {
   mvprint (1, 55, printed_file_name);
   lowvideo();
   mvprint (2, 25, "Esc -> Find Page Save Undo eXit Quit Home End A Z");
-  mvprint (3, 25, "Tab - Arrows - Ctrl : Nextpage/Prevpage");
+  mvprint (3, 25, "Tab Arrows Home/End PgUp/PgDown Ctrl+Nextpage/Prevpage");
 }
 
 
@@ -960,10 +961,10 @@ boolean done;
           movement ( 0, -1);
         break;
         case 10 : /* home */
-          home_mvt ();
+          g_first_page ();
         break;
         case 11 : /* end */
-          end_mvt ();
+          g_last_page ();
         break;
         case 15 : /* find */
           find_seq ();
@@ -979,11 +980,11 @@ boolean done;
           write_modif();
           done = true;
         break;
-        case 19 : /* end file */
-          g_last_page ();
+        case 19 : /* end page */
+          end_mvt ();
         break;
-        case 20 : /* begin file */
-          g_first_page ();
+        case 20 : /* begin page */
+          home_mvt ();
         break;
         case 22 : /* quit */
           done = true;

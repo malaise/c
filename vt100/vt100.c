@@ -6,6 +6,12 @@
 
 #include "vt100.h"
 
+#ifdef DEBUG
+  #define LOG(Arg1, Arg2) (fprintf (stderr, Arg1, Arg2))
+#else
+  #define LOG(Arg1, Arg2)
+#endif
+
 void clrscr (void) {
   char chaine[5];
 
@@ -66,11 +72,13 @@ static char escape_sequence (void) {
   int car;
 
   car = getchar();
+  LOG(" E1-> >%02X<\n", car);
 
   switch (car) {
     case 0x5b:
       /* Esc [ */
       car = getchar();
+      LOG(" E2-> >%02X<\n", car);
       switch (car) {
         case 'A':    /* Arrow up    */
           return 1;  /* Arrow up    */
@@ -80,9 +88,29 @@ static char escape_sequence (void) {
           return 3;  /* Arrow down  */
         case 'D':    /* Arrow left  */
           return 4;  /* Arrow left  */
+        case '5':    /* Page up     */
+          return 5;  /* Page up     */
+        case '6':    /* Page down   */
+          return 6;  /* Page down   */
+        case 'H':    /* Home    */
+          return 10; /* Home */
+        case 'F':    /* End */
+          return 11; /* End */
         default :
           return 0;
-    }
+      }
+    case 'O':
+      /* Exc O */
+      car = getchar();
+      LOG(" E2'-> >%02X<\n", car);
+      switch (car) {
+        case 'H':    /* Home    */
+          return 10; /* Home */
+        case 'F':    /* End */
+          return 11; /* End */
+        default :
+          return 0;
+      }
     case 'A':        /* Esc A       */
     case 'a':        /* Esc a       */
       return 20;     /* Begin file  */
@@ -128,6 +156,7 @@ char read_char (void) {
 
   for (;;) {
     car = getchar();
+    LOG("R-> >%02X<\n", car);
     if ( (car > 0x1F) && (car < 0x7F) ) return car;
     switch (car) {
       case 0x7F:     /* Backspace  */
