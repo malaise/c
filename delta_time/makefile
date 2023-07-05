@@ -1,7 +1,7 @@
 include $(HOME)/Makefiles/common.mk
 
 DINCL := boolean 
-DLIBA := timeval socket mutex wait_evt dynlist
+DLIBA := timeval socket_evt mutex wait_evt dynlist
 
 EXES := delta_time
 

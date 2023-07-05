@@ -4,7 +4,7 @@ GORGY := gorgy
 LIB_TTY := ../$(GORGY)/$(LIB)/libtty.a
 
 DINCL := boolean $(GORGY)
-DLIBA := adjtime timeval socket mutex sig_util wait_evt
+DLIBA := adjtime timeval socket_evt mutex sig_util wait_evt
 
 LIBS := gorgy_decode
 EXES := synchro_server synchro_client synchro_serial eti
