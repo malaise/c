@@ -10,6 +10,18 @@
 #include "wait_evt.h"
 #include "dynlist.h"
 
+/* Distributed algorythm:                                                     */
+/* The first process starts as client and:                                    */
+/*  - Sends a ping request (that will be lost)                                */
+/*  - Waits 1s                                                                */
+/*  - Becomes server: It will only reply to ping requests                     */
+/* A second process starts as client: it sends the ping request and waits 1s  */
+/* Meanwhile, each server replies to the client by providing its local time   */
+/* The client collects these replies and computes the shows the delta of time */
+/*  of each server                                                            */
+/* After the timeout, the client shows the delta of time of each server, then */
+/*  in turn it becomes server                                                 */
+
 /* Timeout for client to collect replies */
 #define DELAY_CLIENT_MS 1000
 
@@ -50,7 +62,7 @@ typedef struct {
   timeout_t time;
 } msg_type;
 
-/* Info kept in client about from each server */
+/* Info kept in client about each server */
 typedef struct {
   soc_host host;
   timeout_t server_time;
@@ -227,7 +239,7 @@ int main (const int argc, const char * argv[]) {
       sprintf (buff, "Invalid fd %d received", fd);
       error (buff);
     } else {
-      /* Now this is the socket, read message */
+      /* Now this is the socket, read message, set for reply */
       res = soc_receive (soc, (soc_message) &msg, sizeof(msg), TRUE);
       if (res < 0) {
         perror ("reading from socket");
@@ -250,7 +262,7 @@ int main (const int argc, const char * argv[]) {
         dlist_insert (&list, &info, TRUE);
 
       } else if ( (wait_timeout.tv_sec == -1) && msg.ping) {
-        /* Second step: reply pong and time to ping */
+        /* Second step: reply pong and time to the pingging host */
         msg.time = current_time;
         msg.ping = FALSE;
         if (soc_send (soc, (soc_message) &msg, sizeof(msg)) != SOC_OK) {
