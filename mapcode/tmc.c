@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "mapcoder.h"
+#include "mapcode_legacy.h"
 
 static void usage (void) {
   fprintf (stderr, "Usage: tmc <encode> | <decode>\n");

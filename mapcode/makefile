@@ -1,9 +1,9 @@
 include $(HOME)/Makefiles/common.mk
 
-MAPCODE:=$(HOME)/mapcode/C/mapcodelib
+MAPCODE := $(HOME)/GeoCodes/mapcode/C/mapcodelib
 
-CCOPT=-I $(MAPCODE)
-LDFLAGS=$(MAPCODE)/mapcoder.o -lm
+CCOPT := -I $(MAPCODE)
+LDFLAGS := $(MAPCODE)/mapcoder.o -lm
 
 EXES := tmc
 
