@@ -170,13 +170,15 @@ static void hsize (pid_t pid, int show_all, int show_sum,
 
     /* Get details from smap - 13 fields*/
     int DETAIL_FIELDS = 13;
-    typedef enum fields_names { SIZE, RSS, PSS, SHARED_CLEAN, SHARED_DIRTY, PRIVATE_CLEAN, PRIVATE_DIRTY, REFERENCED, ANONYMOUS, ANON_HUGE_PAGES, SWAP, KERNEL_PAGE_SIZE, MMU_PAGE_SIZE } Field_names;
+    int PRIVATE_DIRTY = 6;
+    /* For info: */
+    /* typedef enum fields_names {SIZE, RSS, PSS, SHARED_CLEAN, SHARED_DIRTY, PRIVATE_CLEAN, PRIVATE_DIRTY, REFERENCED, ANONYMOUS, ANON_HUGE_PAGES, SWAP, KERNEL_PAGE_SIZE, MMU_PAGE_SIZE} Field_names; */
     int j = 0, got_details = 0, k = 0;
     char detail_line[1024];
-    for( j= 0; j < DETAIL_FIELDS; j++ ) {
+    for (j= 0; j < DETAIL_FIELDS; j++ ) {
         got_details = get_line (file, detail_line, sizeof(detail_line));
-        if (got == -1) break; /* Should never happen */
-        if( PRIVATE_DIRTY == j ) {
+        if (got_details == -1) break; /* Should never happen */
+        if (PRIVATE_DIRTY == j) {
             /* Move to start of value*/
             while ((detail_line[k] != ' ') && (detail_line[k] != '\0')) k++;
             while (detail_line[k] == ' ') k++;
