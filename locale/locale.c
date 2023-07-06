@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <locale.h>
 
+/* Display ASCII characters within locale */
+
 #define ALL 1
 #define ONE 0
 

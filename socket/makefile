@@ -1,3 +1,5 @@
+# Compile socket without depend to wait_evt
+#  (evt_fd_set always returns False)
 include $(HOME)/Makefiles/common.mk
 
 DINCL := boolean

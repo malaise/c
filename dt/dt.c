@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <libgen.h>
 
+/* Convert seconds since Epoch to/from a date and time */
+
 char prog_name[500];
 
 

@@ -9,6 +9,8 @@
 #include <pwd.h>
 #include <grp.h>
 
+/* Show info about a semaphore */
+
 
 union semun {
   int val;

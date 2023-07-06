@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <X11/Xlib.h>
 
+/* Display the height, width and vertical offset of several fonts */
+
 char *prog_name;
 
 static void usage (void) {

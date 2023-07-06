@@ -7,6 +7,7 @@
 #include <libgen.h>
 #include <crypt.h>
 
+/* Password encryption */
 
 #define Usage() fprintf(stderr, "Usage: %s <2_digits_key> <password>\n", \
                  basename(argv[0]))
@@ -29,5 +30,4 @@ int main (int argc, char *argv[]) {
 
   exit(0);
 }
-
 

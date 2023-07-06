@@ -1,3 +1,4 @@
+# Compile socket with depend to wait_evt
 include $(HOME)/Makefiles/common.mk
 
 DINCL := boolean

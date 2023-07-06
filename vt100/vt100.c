@@ -113,10 +113,10 @@ static char escape_sequence (void) {
       }
     case 'A':        /* Esc A       */
     case 'a':        /* Esc a       */
-      return 20;     /* Begin file  */
+      return 20;     /* Begin page  */
     case 'Z':        /* Esc Z       */
     case 'z':        /* Esc z       */
-      return 19;     /* End file    */
+      return 19;     /* End page    */
     case 'H':        /* Esc H       */
     case 'h':        /* Esc h       */
       return 10;     /* Home        */
@@ -159,13 +159,13 @@ char read_char (void) {
     LOG("R-> >%02X<\n", car);
     if ( (car > 0x1F) && (car < 0x7F) ) return car;
     switch (car) {
-      case 0x7F:     /* Backspace  */
-      case 0x08:     /* Backspace  */
-        return 8;    /* Backspace  */
       case 0x10:     /* Ctrl P     */
         return 5;    /* Pg up      */
       case 0x0E:     /* Ctrl N     */
         return 6;    /* Pg down    */
+      case 0x7F:     /* Backspace  */
+      case 0x08:     /* Backspace  */
+        return 8;    /* Backspace  */
       case 0x09:     /* Tab        */
         return 9;    /* Tab        */
       case 0x0D:     /* Return     */

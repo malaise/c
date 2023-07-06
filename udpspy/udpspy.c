@@ -3,6 +3,8 @@
 #include "wait_evt.h"
 #include "util.h"
 
+/* Dump messages received on a UDP/IPM port */
+
 /* Message read */
 static char message[128*1024];
 

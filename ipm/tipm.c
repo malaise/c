@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/* Send a packet on lan "test_ipm" and port "test_udp" */
 
 #include "socket.h"
 #define SIZE 8*1024

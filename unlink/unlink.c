@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+/* Unlink (rm) a file */
+
 #include "get_line.h"
 
 static void remove_file(char *name) {
@@ -30,7 +32,7 @@ char input[500];
       }
       remove_file(input);
     }
-      
+
   } else {
 
     for (i = 1; i < argc; i++) {

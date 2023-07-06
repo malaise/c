@@ -10,6 +10,8 @@
 #define N_MAX       1000
 #define MALLOC_MAX (100 * 1024)
 
+/* Perform several malloc then free. Usa ursage to show memory footprint */
+
 /* Random value from 1 to max included */
 static int rnd (int max) {
   int i;

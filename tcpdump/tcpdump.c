@@ -6,6 +6,11 @@
 #include <time.h>
 #include <ctype.h>
 
+/* If not started with "-a", configure interface (-i) as promiscuous and  */
+/*  launch "/usr/sbin/tcpdump | tcpdump -a"                               */
+/* Is started with "-a", dump ascii content of packets beside the genuine */
+/*  hexa content                                                          */
+
 #define LF (char)0x0A
 #define TAB (char)0x09
 
@@ -19,8 +24,6 @@
 #define TCPDUMP "/usr/sbin/tcpdump"
 #define PFCONFIG ""
 #endif
-
-
 
 static char get_char (void) {
   int i;
@@ -160,12 +163,13 @@ int main (int argc, char *argv[]) {
         /* Dump the ascii corresponding ascii */
         buffer[i] = '\0';
         /* Pad end of exa line with spaces */
-        while (i < 44) {
+        while (i < 48) {
           (void) putchar(' ');
           i++;
         }
         (void) printf ("->     ");
-        i = 0;
+        /* Skip "0xijkl:  " */
+        i = 9;
         for (;;) {
           c1 = buffer[i];
           i++;

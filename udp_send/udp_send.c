@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 
+/* Send a text message on UDP */
 
 #include "get_line.h"
 #include "socket.h"

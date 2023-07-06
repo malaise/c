@@ -6,6 +6,8 @@
 #include <string.h>
 #include <errno.h>
 
+/* Terminal on a serial line */
+
 #include "tty.h"
 
 int main (int argc, char *argv[]) {

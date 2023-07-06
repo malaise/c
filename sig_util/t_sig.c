@@ -6,6 +6,8 @@
 #include "sig_util.h"
 #include "timeval.h"
 
+/* Catch and show signals TERM and INT */
+
 static void sig_handler(int sig);
 
 int main(void) {

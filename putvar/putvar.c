@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* Get freom ENV the variables provided as argument */
+
 int main (int argc, char *argv[]) {
 
   int i;

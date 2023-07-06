@@ -6,6 +6,8 @@
 
 #include "sig_util.h"
 
+/* handle and ump signals ALRM, USR1 and USR2 */
+
 #define ALRM_S 000005
 #define ALRM_U 000000
 

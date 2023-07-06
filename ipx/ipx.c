@@ -4,6 +4,8 @@
 #include <libgen.h>
 #include <sys/param.h>
 
+/* Display IP address in hexa, in 4 bytes and host name */
+
 #include "socket.h"
 
 static void print_ip (soc_host *host, char *name) {
