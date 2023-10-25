@@ -8,12 +8,12 @@ int main (void) {
 
   int i;
   void __attribute__((unused)) *p;
-
+/*
   if (init_rusage() != RUSAGE_OK) {
     fprintf (stderr, "Cannot init rusage\n");
     exit (1);
   }
-
+*/
 
   for (;;)  {
      dump_rusage_str ("Call");

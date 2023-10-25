@@ -19,14 +19,8 @@ static int rusage_installed = 0;
 /* File where file_block are written */
 static FILE *rusage_file = (FILE*) NULL;
 
-#ifdef alpha
-/* Fd of our entry in /proc */
-static int my_fd = -1;
-#endif
-
 
 /* Handler of RUSAGE_SIG signal */
-
 #ifdef __STDC__
 /*ARGSUSED*/
 static void signal_rusage (int sig)
@@ -35,9 +29,9 @@ static void signal_rusage (sig)
 int sig;
 #endif
 {
-  char str [30];
+  char str[50];
   sprintf (str, "Signal %d", sig);
-  dump_rusage_str (str);
+  dump_rusage_str(str);
 }
 
 /* Inititialises the dump_rusage function */
@@ -74,15 +68,6 @@ static int open_file()
 
   /* Get pid */
   my_pid = getpid();
-
-#ifdef alpha
-  /* Open /proc/<pid> */
-  {
-    char proc_name[255];
-    sprintf (proc_name, "/proc/%05d", my_pid);
-    my_fd = open(proc_name, O_RDONLY, 0);
-  }
-#endif
 
   /* Build file name : "rusage_HOSTNAME_PID" */
   if (gethostname(hostname, sizeof(hostname)) != 0) {
@@ -132,21 +117,7 @@ char *str;
   /* Get time and rusage */
   gettimeofday (&block.time, NULL);
   getrusage(RUSAGE_SELF, &block.usage);
-
-#ifdef alpha
-  /* Get virtual size */
-  {
-    struct prpsinfo procinfo;
-    block.pr_size = -1;
-    if (my_fd != -1) {
-      if (ioctl(my_fd, PIOCPSINFO, &procinfo) != -1) {
-        block.pr_size = procinfo.pr_size;
-      }
-    }
-  }
-#else
   block.pr_size = 0;
-#endif
 
   if (str == NULL) {
     block.msg[0] = '\0';
@@ -159,6 +130,4 @@ char *str;
   (void) fwrite ((void*)&block, sizeof(file_block), 1, rusage_file);
   (void) fflush (rusage_file);
 }
-
-
 
