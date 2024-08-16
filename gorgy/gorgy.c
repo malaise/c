@@ -124,7 +124,7 @@ static void format_time (timeout_t *p_time) {
   char *date_str;
   struct tm *date_struct;
 
-  char yyyy[5], mm[3], dd[3], nnn[4], hh[3], mn[2], ss[2];
+  char yyyy[5], mm[12], dd[3], nnn[4], hh[3], mn[2], ss[2];
   char *yy = &yyyy[2];
 
   date_str = ctime (&(p_time->tv_sec));

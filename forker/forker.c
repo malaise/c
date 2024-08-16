@@ -69,7 +69,7 @@ static void flush (void) {
 static char *date_str (void) {
   struct timeval time;
   struct tm *tm_date_p;
-  static char printed_date[50];
+  static char printed_date[90];
 
   gettimeofday (&time, NULL);
   tm_date_p = gmtime(&(time.tv_sec));
